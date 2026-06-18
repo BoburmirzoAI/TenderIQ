@@ -1,0 +1,32 @@
+{% extends "email/base.html" %}
+{% block content %}
+<h2>Haftalik tender xulosa</h2>
+<p>Hurmatli {{ user_name }}, bu hafta sizning kompaniyangiz uchun {{ matches|length }} ta mos tender topildi.</p>
+
+{% if stats %}
+<table class="stats-table">
+  <tr><td>Jami yangi tenderlar</td><td>{{ stats.new_tenders }}</td></tr>
+  <tr><td>Mos tenderlar</td><td>{{ stats.matched }}</td></tr>
+  <tr><td>Arizalaringiz</td><td>{{ stats.applications }}</td></tr>
+  <tr><td>Yutilgan tenderlar</td><td>{{ stats.won }}</td></tr>
+</table>
+{% endif %}
+
+{% if matches %}
+<h2 style="margin-top: 24px;">Eng yaxshi mosliklar</h2>
+{% for match in matches[:10] %}
+<div class="tender-card">
+  <div class="title">{{ match.title }}</div>
+  <div class="meta">
+    <span class="score">Moslik: {{ match.score }}%</span>
+    &nbsp;&middot;&nbsp;
+    <span class="amount">{{ "{:,.0f}".format(match.amount) }} UZS</span>
+    &nbsp;&middot;&nbsp;
+    Muddat: {{ match.deadline }}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<a href="{{ app_url }}/matched" class="btn">Barcha mosliklarni ko'rish</a>
+{% endblock %}

@@ -1,0 +1,59 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tenderiq
+          POSTGRES_PASSWORD: tenderiq
+          POSTGRES_DB: tenderiq_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: |
+          black --check app/ bot/ tests/
+          isort --check-only app/ bot/ tests/
+          flake8 app/ bot/ tests/ --max-line-length=100
+
+      - name: Unit tests
+        run: pytest tests/unit/ -v --tb=short
+
+      - name: Integration tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://tenderiq:tenderiq@localhost:5432/tenderiq_test
+          REDIS_URL: redis://localhost:6379/0
+        run: pytest tests/integration/ -v --tb=short

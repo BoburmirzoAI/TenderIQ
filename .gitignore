@@ -1,0 +1,21 @@
+# Environment files - NEVER commit these
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/

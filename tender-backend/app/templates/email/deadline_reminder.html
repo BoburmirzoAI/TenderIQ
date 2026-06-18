@@ -1,0 +1,18 @@
+{% extends "email/base.html" %}
+{% block content %}
+<h2>Tender muddati yaqinlashmoqda!</h2>
+<p>Hurmatli {{ user_name }}, quyidagi tender{{ tenders|length > 1 and "lar" or "" }} muddati tugashiga {{ days_left }} kun qoldi:</p>
+
+{% for tender in tenders %}
+<div class="tender-card">
+  <div class="title">{{ tender.title }}</div>
+  <div class="meta">
+    <span class="amount">{{ "{:,.0f}".format(tender.amount) }} UZS</span>
+    &nbsp;&middot;&nbsp;
+    Muddat: {{ tender.deadline }}
+  </div>
+</div>
+{% endfor %}
+
+<a href="{{ app_url }}/tenders" class="btn">Tenderlarni ko'rish</a>
+{% endblock %}

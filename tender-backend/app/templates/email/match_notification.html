@@ -1,0 +1,20 @@
+{% extends "email/base.html" %}
+{% block content %}
+<h2>Yangi mos tender topildi!</h2>
+<p>Hurmatli {{ user_name }}, sizning kompaniyangizga mos yangi tender aniqlandi:</p>
+
+<div class="tender-card">
+  <div class="title">{{ tender_title }}</div>
+  <div class="meta">
+    <span class="score">Moslik: {{ score }}%</span>
+    &nbsp;&middot;&nbsp;
+    <span class="amount">{{ "{:,.0f}".format(amount) }} UZS</span>
+  </div>
+  <div class="meta" style="margin-top: 6px;">
+    Tashkilot: {{ organization }}<br>
+    Muddat: {{ deadline }}
+  </div>
+</div>
+
+<a href="{{ app_url }}/tenders/{{ tender_id }}" class="btn">Tenderni ko'rish</a>
+{% endblock %}

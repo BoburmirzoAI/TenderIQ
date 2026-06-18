@@ -1,0 +1,15 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [dev]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        run: echo "Deploy to staging server"
+        # Add SSH deploy or container registry push here
