@@ -23,14 +23,15 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
-    "scrape-uzex-every-20min": {
-        "task": "app.tasks.scraping_tasks.scrape_uzex",
-        "schedule": crontab(minute="*/20"),
-    },
-    "scrape-mc-hourly": {
-        "task": "app.tasks.scraping_tasks.scrape_mc",
-        "schedule": crontab(minute=5),
-    },
+    # Scraperlar o'chirilgan — faqat qo'lda yoqiladi
+    # "scrape-uzex-every-20min": {
+    #     "task": "app.tasks.scraping_tasks.scrape_uzex",
+    #     "schedule": crontab(minute="*/20"),
+    # },
+    # "scrape-mc-hourly": {
+    #     "task": "app.tasks.scraping_tasks.scrape_mc",
+    #     "schedule": crontab(minute=5),
+    # },
     "retrain-price-model-daily": {
         "task": "app.tasks.ml_tasks.retrain_price_model",
         "schedule": crontab(hour=3, minute=0),
@@ -55,15 +56,20 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.cleanup_tasks.verify_backup",
         "schedule": crontab(hour=6, minute=0),
     },
+    "archive-daily-logs": {
+        "task": "app.tasks.log_archive_tasks.archive_daily_logs",
+        "schedule": crontab(hour=0, minute=30),
+    },
 }
 
 celery_app.autodiscover_tasks(
     [
-        "app.tasks.scraping_tasks",
-        "app.tasks.matching_tasks",
-        "app.tasks.notification_tasks",
-        "app.tasks.ml_tasks",
-        "app.tasks.report_tasks",
-        "app.tasks.cleanup_tasks",
+        "app.tasks.scraping.scraping_tasks",
+        "app.tasks.ml.matching_tasks",
+        "app.tasks.ml.ml_tasks",
+        "app.tasks.communication.notification_tasks",
+        "app.tasks.system.report_tasks",
+        "app.tasks.system.cleanup_tasks",
+        "app.tasks.system.log_archive_tasks",
     ]
 )

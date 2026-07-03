@@ -7,10 +7,10 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import Float as SAFloat, case, func, select
 
 from app.database import async_session
-from app.models.tender import Tender
-from app.models.tender_application import TenderApplication
-from app.models.tender_result import TenderResult
-from app.models.user import User
+from app.models.tenders.tender import Tender
+from app.models.tenders.tender_application import TenderApplication
+from app.models.tenders.tender_result import TenderResult
+from app.models.auth.user import User
 from bot.keyboards.inline import competitor_kb, region_map_kb
 
 router = Router()

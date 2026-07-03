@@ -11,10 +11,10 @@ logger = logging.getLogger(__name__)
 async def seed() -> None:
     """Create test users, companies, and tenders."""
     from app.database import async_session, create_db_tables
-    from app.models.company import Company
-    from app.models.subscription import Subscription
-    from app.models.tender import Tender
-    from app.models.user import User
+    from app.models.companies.company import Company
+    from app.models.finance.subscription import Subscription
+    from app.models.tenders.tender import Tender
+    from app.models.auth.user import User
     from app.utils.security import hash_password
 
     await create_db_tables()

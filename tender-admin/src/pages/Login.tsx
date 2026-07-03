@@ -55,7 +55,14 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       localStorage.setItem('tiq_admin_user', JSON.stringify(userData));
       onLoginSuccess(userData);
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.response?.data?.message || err.message);
+      const status = err.response?.status;
+      if (status === 401 || status === 403) {
+        setError("Email yoki parol noto'g'ri");
+      } else if (status === 429) {
+        setError("Juda ko'p urinish. Biroz kutib qayta urinib ko'ring");
+      } else {
+        setError("Tizimda xatolik yuz berdi. Qayta urinib ko'ring");
+      }
     } finally {
       setLoading(false);
     }

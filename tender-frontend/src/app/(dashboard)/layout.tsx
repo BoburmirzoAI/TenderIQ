@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "@/components/layout/sidebar-nav";
 import { Header } from "@/components/layout/header";
 import { useAuthStore } from "@/store/auth";
+import { useNotificationWS } from "@/hooks/use-notification-ws";
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,7 @@ export default function DashboardLayout({
   const { setTheme } = useTheme();
   const [ready, setReady] = useState(false);
   const [initialThemeApplied, setInitialThemeApplied] = useState(false);
+  useNotificationWS();
 
   useEffect(() => {
     init();

@@ -6,6 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.exceptions import UnauthorizedException
 from app.utils.security import decode_token
 
 logger = logging.getLogger(__name__)
@@ -18,23 +19,31 @@ class AuthMiddleware(BaseHTTPMiddleware):
         """Extract user info from JWT if present."""
         request.state.user_id = None
         request.state.is_admin = False
+        request.state.user_roles = []
 
         auth_header = request.headers.get("authorization", "")
+        token = None
         if auth_header.startswith("Bearer "):
             token = auth_header.split(" ", 1)[1]
+        elif request.query_params.get("token"):
+            token = request.query_params["token"]
+
+        if token:
             try:
                 payload = decode_token(token)
                 user_id = payload.get("sub")
                 if user_id:
                     request.state.user_id = user_id
                     from app.database import async_session
-                    from app.repositories.user_repo import UserRepository
+                    from app.repositories.auth.user_repo import UserRepository
                     async with async_session() as db:
                         repo = UserRepository(db)
                         user = await repo.get_by_id(int(user_id))
                         if user:
                             request.state.is_admin = user.is_admin or user.is_superadmin
-            except Exception:
+                            request.state.user_roles = [r.name for r in user.roles] if user.roles else []
+            except UnauthorizedException:
+                # Invalid or expired token — treat as anonymous request
                 pass
 
         return await call_next(request)

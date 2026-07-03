@@ -7,8 +7,8 @@ from aiogram import F, Router
 from aiogram.types import InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from app.models.user import User
-from app.services.document_checker import DocumentChecker
+from app.models.auth.user import User
+from app.services.documents.document_checker import DocumentChecker
 
 router = Router()
 

@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { CATEGORIES, REGIONS } from "@/types";
+import { toast } from "sonner";
 
 type ReportType = "tenders" | "applications" | "analytics";
 type ReportFormat = "pdf" | "excel";
@@ -99,7 +100,7 @@ export default function ReportsPage() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      // silently fail — user sees no download
+      toast.error("Hisobotni yuklab olishda xatolik yuz berdi");
     } finally {
       setLoading(null);
     }

@@ -1,82 +1,87 @@
-import { useState } from 'react';
-import { Building, CheckCircle, XCircle, Edit3, Trash2, Shield, Search, X, Plus, Eye } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Building, Trash2, Search, RefreshCw, Eye, X, Download, Plus, BarChart3, Target, Activity, FileText, Users, CreditCard } from 'lucide-react';
 import { useAdmin } from '../hooks/useAdmin';
+import { companiesApi, type AdminCompany } from '../api/admin';
 
-interface Company {
-  id: number;
-  name: string;
-  stir: string;
-  director: string;
-  email: string;
-  phone: string;
-  region: string;
-  industry: string;
-  verified: boolean;
-  owner: string;
-}
-
-const initialCompanies: Company[] = [
-  { id: 1, name: 'TechCorp Solutions', stir: '302456789', director: 'Bobur Sobirjonov', email: 'info@techcorp.uz', phone: '+998901234567', region: 'Toshkent', industry: 'IT', verified: true, owner: 'Bobur Sobirjonov' },
-  { id: 2, name: 'BuildPro Construction', stir: '304567891', director: 'Aziz Toshmatov', email: 'info@buildpro.uz', phone: '+998912345678', region: 'Samarqand', industry: 'Qurilish', verified: true, owner: 'Aziz Toshmatov' },
-  { id: 3, name: 'MediSupply Trading', stir: '301234567', director: 'Sherzod Umarov', email: 'info@medisupply.uz', phone: '+998933456789', region: 'Buxoro', industry: 'Tibbiyot', verified: true, owner: 'Sherzod Umarov' },
-  { id: 4, name: 'LogiTrans Logistics', stir: '305678912', director: 'Farhod Aliyev', email: 'info@logitrans.uz', phone: '+998944567890', region: 'Farg\'ona', industry: 'Transport', verified: false, owner: 'Farhod Aliyev' },
-  { id: 5, name: 'GreenBuild Eco', stir: '303456789', director: 'Ravshan Nazarov', email: 'info@greenbuild.uz', phone: '+998955678901', region: 'Navoiy', industry: 'Qurilish', verified: false, owner: 'Ravshan Nazarov' },
-  { id: 6, name: 'EduSupply Partners', stir: '306789123', director: 'Kamola Tursunova', email: 'info@edusupply.uz', phone: '+998966789012', region: 'Andijon', industry: 'Ta\'lim', verified: true, owner: 'Kamola Tursunova' },
-];
-
-const emptyForm: Omit<Company, 'id'> = {
-  name: '', stir: '', director: '', email: '', phone: '', region: '', industry: '', verified: false, owner: '',
-};
-
-export default function Companies() {
-  const { addToast } = useAdmin();
-  const [companies, setCompanies] = useState<Company[]>(initialCompanies);
+export default function CompaniesPage() {
+  const { addToast, setActiveTab } = useAdmin();
+  const [companies, setCompanies] = useState<AdminCompany[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [detailCompany, setDetailCompany] = useState<Company | null>(null);
-  const [editCompany, setEditCompany] = useState<Company | null>(null);
-  const [editForm, setEditForm] = useState<Company | null>(null);
+  const [detail, setDetail] = useState<AdminCompany | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState<Omit<Company, 'id'>>(emptyForm);
+  const [createForm, setCreateForm] = useState({ user_id: '', name: '', stir: '', contact_person: '', contact_phone: '', address: '', website: '' });
+  const [creating, setCreating] = useState(false);
+  const perPage = 20;
 
-  const verified = companies.filter(c => c.verified).length;
-  const unverified = companies.filter(c => !c.verified).length;
+  const fetchCompanies = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, string | number> = { page, per_page: perPage };
+      if (search) params.search = search;
+      const res = await companiesApi.list(params);
+      setCompanies(res.data);
+      setTotal(res.total);
+    } catch {
+      addToast('Xatolik', 'Kompaniyalarni yuklashda xato', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search]);
 
-  const filtered = companies.filter((c) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return c.name.toLowerCase().includes(q) || c.stir.includes(q) || c.director.toLowerCase().includes(q);
-  });
+  useEffect(() => { fetchCompanies(); }, [fetchCompanies]);
 
-  const openEdit = (company: Company) => {
-    setEditCompany(company);
-    setEditForm({ ...company });
+  const totalPages = Math.ceil(total / perPage);
+
+  const createCompany = async () => {
+    if (!createForm.name.trim() || !createForm.user_id.trim()) return;
+    setCreating(true);
+    try {
+      await companiesApi.create({
+        user_id: Number(createForm.user_id),
+        name: createForm.name,
+        stir: createForm.stir || undefined,
+        contact_person: createForm.contact_person || undefined,
+        contact_phone: createForm.contact_phone || undefined,
+        address: createForm.address || undefined,
+        website: createForm.website || undefined,
+      });
+      addToast('Yaratildi', 'Kompaniya muvaffaqiyatli yaratildi', 'success');
+      setShowCreate(false);
+      setCreateForm({ user_id: '', name: '', stir: '', contact_person: '', contact_phone: '', address: '', website: '' });
+      fetchCompanies();
+    } catch (err: any) {
+      addToast('Xatolik', err?.response?.data?.detail || 'Yaratishda xato', 'error');
+    } finally {
+      setCreating(false);
+    }
   };
 
-  const saveEdit = () => {
-    if (!editForm) return;
-    setCompanies(prev => prev.map(c => c.id === editForm.id ? editForm : c));
-    addToast('Saqlandi', `${editForm.name} ma'lumotlari yangilandi`, 'success');
-    setEditCompany(null);
-    setEditForm(null);
+  const deleteCompany = async (c: AdminCompany) => {
+    if (!confirm(`"${c.name}" ni o'chirishni tasdiqlaysizmi?`)) return;
+    try {
+      await companiesApi.delete(c.id);
+      setCompanies(prev => prev.filter(x => x.id !== c.id));
+      setTotal(p => p - 1);
+      addToast('O\'chirildi', 'Kompaniya o\'chirildi', 'success');
+    } catch { addToast('Xatolik', 'O\'chirishda xato', 'error'); }
   };
 
-  const handleVerify = (company: Company) => {
-    setCompanies(prev => prev.map(c => c.id === company.id ? { ...c, verified: true } : c));
-    addToast('Tasdiqlandi', `${company.name} tasdiqlandi`, 'success');
+  const exportCSV = (filename: string, headers: string[], rows: any[][]) => {
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleDelete = (company: Company) => {
-    setCompanies(prev => prev.filter(c => c.id !== company.id));
-    addToast('O\'chirildi', `${company.name} o'chirildi`, 'info');
-  };
-
-  const handleCreate = () => {
-    if (!createForm.name.trim()) return;
-    const newCompany: Company = { id: Date.now(), ...createForm };
-    setCompanies(prev => [...prev, newCompany]);
-    setShowCreate(false);
-    setCreateForm(emptyForm);
-    addToast('Qo\'shildi', `${newCompany.name} muvaffaqiyatli qo'shildi`, 'success');
+  const handleExport = () => {
+    exportCSV('kompaniyalar.csv',
+      ['ID', 'Nomi', 'STIR', 'Egasi', 'Email', 'Telefon', 'Manzil', "Ro'yxatdan o'tgan"],
+      companies.map(c => [c.id, c.name, c.stir || '', c.owner_name || '', c.owner_email || '', c.contact_phone || '', c.address || '', new Date(c.created_at).toLocaleDateString('uz')])
+    );
   };
 
   return (
@@ -84,209 +89,185 @@ export default function Companies() {
       <div className="flex-between mb-24">
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)' }}>Kompaniyalar</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Barcha kompaniya profillari</p>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Jami: {total} ta kompaniya</p>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>
-          <Plus size={14} /> Kompaniya qo'shish
-        </button>
-      </div>
-
-      <div className="grid-3 mb-24">
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Jami kompaniyalar</span>
-            <Building size={16} style={{ color: 'var(--blue)' }} />
-          </div>
-          <div className="stat-value">{companies.length}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Tasdiqlangan</span>
-            <CheckCircle size={16} style={{ color: 'var(--green)' }} />
-          </div>
-          <div className="stat-value" style={{ color: 'var(--green)' }}>{verified}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Tasdiqlanmagan</span>
-            <XCircle size={16} style={{ color: 'var(--orange)' }} />
-          </div>
-          <div className="stat-value" style={{ color: 'var(--orange)' }}>{unverified}</div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-sm btn-primary" onClick={() => setShowCreate(true)}><Plus size={13} /> Yangi kompaniya</button>
+          <button className="btn btn-sm btn-ghost" onClick={handleExport} disabled={companies.length === 0}><Download size={14} /> CSV</button>
+          <button className="btn btn-sm btn-ghost" onClick={fetchCompanies}><RefreshCw size={14} /></button>
         </div>
       </div>
 
-      <div className="card mb-24">
-        <div className="card-body" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+      {/* Quick Actions */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        {[
+          { label: 'Tenderlar', tab: 'tenders', icon: Target, color: 'var(--teal)' },
+          { label: 'Analitika', tab: 'analytics', icon: BarChart3, color: 'var(--primary)' },
+          { label: 'Jamoalar', tab: 'teams', icon: Users, color: 'var(--green)' },
+          { label: 'Raqobatchilar', tab: 'competitors', icon: Activity, color: 'var(--yellow)' },
+          { label: 'Moliya', tab: 'financials', icon: CreditCard, color: 'var(--purple)' },
+          { label: 'Hisobotlar', tab: 'reports', icon: FileText, color: 'var(--red)' },
+        ].map(btn => (
+          <button key={btn.label} className="btn btn-ghost btn-sm" onClick={() => setActiveTab?.(btn.tab)}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', borderColor: 'var(--border-1)' }}>
+            <btn.icon size={13} style={{ color: btn.color }} /> {btn.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="card mb-16">
+        <div className="card-body" style={{ display: 'flex', gap: '12px' }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
-            <input className="input" placeholder="Nomi, STIR yoki direktor..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: '36px' }} />
+            <input className="input" placeholder="Nomi yoki STIR..." value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }} style={{ paddingLeft: '36px' }} />
           </div>
         </div>
       </div>
 
       <div className="card">
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nomi</th>
-                <th>STIR</th>
-                <th>Direktor</th>
-                <th>Email</th>
-                <th>Telefon</th>
-                <th>Hudud</th>
-                <th>Soha</th>
-                <th>Holat</th>
-                <th>Amallar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((c, idx) => (
-                <tr key={c.id} style={{ background: idx % 2 === 0 ? 'transparent' : 'var(--bg-1)' }}>
-                  <td style={{ padding: '12px 16px', color: 'var(--text-4)' }}>{c.id}</td>
-                  <td style={{ padding: '12px 16px', fontWeight: 600, cursor: 'pointer', color: 'var(--text-0)' }} onClick={() => setDetailCompany(c)}>{c.name}</td>
-                  <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: '12px' }}>{c.stir}</td>
-                  <td style={{ padding: '12px 16px' }}>{c.director}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-3)' }}>{c.email}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px' }}>{c.phone}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-3)' }}>{c.region || '—'}</td>
-                  <td style={{ padding: '12px 16px' }}><span className="badge badge-primary">{c.industry}</span></td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span className={`badge ${c.verified ? 'badge-green' : 'badge-yellow'}`}>
-                      {c.verified ? 'Tasdiqlangan' : 'Kutilmoqda'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <div className="table-actions">
-                      <button className="btn-icon" title="Ko'rish" onClick={() => setDetailCompany(c)}><Eye size={14} /></button>
-                      <button className="btn-icon" title="Tahrirlash" onClick={() => openEdit(c)}><Edit3 size={14} /></button>
-                      {!c.verified && <button className="btn-icon" title="Tasdiqlash" onClick={() => handleVerify(c)}><Shield size={14} style={{ color: 'var(--green)' }} /></button>}
-                      <button className="btn-icon" title="O'chirish" onClick={() => handleDelete(c)}><Trash2 size={14} style={{ color: 'var(--red)' }} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}><RefreshCw size={20} className="animate-spin" style={{ margin: '0 auto', color: 'var(--text-3)' }} /></div>
+        ) : (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr><th>Kompaniya</th><th>STIR</th><th>Egasi</th><th>Aloqa</th><th>Ro'yxatdan</th><th></th></tr>
+              </thead>
+              <tbody>
+                {companies.length === 0 ? (
+                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-4)' }}>Kompaniyalar topilmadi</td></tr>
+                ) : companies.map(c => (
+                  <tr key={c.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Building size={14} style={{ color: 'var(--primary)' }} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-0)' }}>{c.name}</div>
+                          {c.address && <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{c.address}</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ color: c.stir ? 'var(--text-1)' : 'var(--text-4)', fontFamily: 'monospace' }}>{c.stir || '—'}</td>
+                    <td>
+                      {c.owner_email ? (
+                        <div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-1)' }}>{c.owner_name || '—'}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{c.owner_email}</div>
+                        </div>
+                      ) : <span style={{ color: 'var(--text-4)' }}>—</span>}
+                    </td>
+                    <td style={{ color: 'var(--text-2)', fontSize: '12px' }}>{c.contact_phone || '—'}</td>
+                    <td style={{ color: 'var(--text-3)', fontSize: '12px' }}>{new Date(c.created_at).toLocaleDateString('uz')}</td>
+                    <td>
+                      <div className="table-actions">
+                        <button className="btn-icon" onClick={() => setDetail(c)}><Eye size={14} /></button>
+                        <button className="btn-icon" onClick={() => deleteCompany(c)}><Trash2 size={14} style={{ color: 'var(--red)' }} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {totalPages > 1 && (
+          <div className="card-footer" style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+            <button className="btn btn-sm btn-ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Oldingi</button>
+            <span style={{ fontSize: '13px', color: 'var(--text-3)', alignSelf: 'center' }}>{page} / {totalPages}</span>
+            <button className="btn btn-sm btn-ghost" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Keyingi →</button>
+          </div>
+        )}
       </div>
 
-      {/* Detail Modal */}
-      {detailCompany && (
-        <div className="modal-overlay" onClick={() => setDetailCompany(null)}>
-          <div className="modal" style={{ maxWidth: '520px' }} onClick={e => e.stopPropagation()}>
+      {detail && (
+        <div className="modal-overlay" onClick={() => setDetail(null)}>
+          <div className="modal" style={{ maxWidth: '460px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontWeight: 700, color: 'var(--text-0)' }}>{detailCompany.name}</h3>
-              <button className="btn-icon" onClick={() => setDetailCompany(null)}><X size={18} /></button>
+              <h3 style={{ fontWeight: 700, color: 'var(--text-0)' }}>Kompaniya tafsiloti</h3>
+              <button className="btn-icon" onClick={() => setDetail(null)}><X size={18} /></button>
             </div>
             <div className="modal-body">
               <div className="grid-2" style={{ gap: '16px' }}>
-                <div><span style={{ color: 'var(--text-3)', fontSize: '12px' }}>STIR</span><div style={{ fontFamily: 'monospace', fontWeight: 600 }}>{detailCompany.stir}</div></div>
-                <div><span style={{ color: 'var(--text-3)', fontSize: '12px' }}>Holat</span><div><span className={`badge ${detailCompany.verified ? 'badge-green' : 'badge-yellow'}`}>{detailCompany.verified ? 'Tasdiqlangan' : 'Kutilmoqda'}</span></div></div>
-                <div><span style={{ color: 'var(--text-3)', fontSize: '12px' }}>Direktor</span><div style={{ color: 'var(--text-1)', fontWeight: 600 }}>{detailCompany.director}</div></div>
-                <div><span style={{ color: 'var(--text-3)', fontSize: '12px' }}>Egasi</span><div style={{ color: 'var(--text-1)' }}>{detailCompany.owner}</div></div>
-                <div><span style={{ color: 'var(--text-3)', fontSize: '12px' }}>Email</span><div style={{ color: 'var(--text-1)' }}>{detailCompany.email}</div></div>
-                <div><span style={{ color: 'var(--text-3)', fontSize: '12px' }}>Telefon</span><div style={{ color: 'var(--text-1)' }}>{detailCompany.phone}</div></div>
-                <div><span style={{ color: 'var(--text-3)', fontSize: '12px' }}>Hudud</span><div style={{ color: 'var(--text-1)' }}>{detailCompany.region || '—'}</div></div>
-                <div><span style={{ color: 'var(--text-3)', fontSize: '12px' }}>Soha</span><div><span className="badge badge-primary">{detailCompany.industry}</span></div></div>
+                {[
+                  ['Nomi', detail.name], ['STIR', detail.stir || '—'],
+                  ['Egasi', detail.owner_name || '—'], ['Email', detail.owner_email || '—'],
+                  ['Telefon', detail.contact_phone || '—'], ['Veb-sayt', detail.website || '—'],
+                  ['Manzil', detail.address || '—'], ['Ro\'yxatdan', new Date(detail.created_at).toLocaleDateString('uz')],
+                ].map(([label, val]) => (
+                  <div key={label}>
+                    <span style={{ color: 'var(--text-3)', fontSize: '12px' }}>{label}</span>
+                    <div style={{ marginTop: '4px', color: 'var(--text-1)', fontSize: '13px', wordBreak: 'break-all' }}>{val}</div>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setDetailCompany(null)}>Yopish</button>
-              <button className="btn btn-primary" onClick={() => { setDetailCompany(null); openEdit(detailCompany); }}>Tahrirlash</button>
+              <button className="btn btn-ghost" onClick={() => setDetail(null)}>Yopish</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Modal */}
-      {editCompany && editForm && (
-        <div className="modal-overlay" onClick={() => { setEditCompany(null); setEditForm(null); }}>
-          <div className="modal" style={{ maxWidth: '520px' }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 style={{ fontWeight: 700, color: 'var(--text-0)' }}>Kompaniyani tahrirlash</h3>
-              <button className="btn-icon" onClick={() => { setEditCompany(null); setEditForm(null); }}><X size={18} /></button>
-            </div>
-            <div className="modal-body">
-              <div className="input-group">
-                <label className="input-label">Nomi</label>
-                <input className="input" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">STIR</label>
-                <input className="input" value={editForm.stir} onChange={(e) => setEditForm({ ...editForm, stir: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Direktor</label>
-                <input className="input" value={editForm.director} onChange={(e) => setEditForm({ ...editForm, director: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Email</label>
-                <input className="input" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Telefon</label>
-                <input className="input" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Hudud</label>
-                <input className="input" value={editForm.region} onChange={(e) => setEditForm({ ...editForm, region: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Soha</label>
-                <input className="input" value={editForm.industry} onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })} />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => { setEditCompany(null); setEditForm(null); }}>Bekor qilish</button>
-              <button className="btn btn-primary" onClick={saveEdit}>Saqlash</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Modal */}
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
           <div className="modal" style={{ maxWidth: '520px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontWeight: 700, color: 'var(--text-0)' }}>Kompaniya qo'shish</h3>
+              <h3 style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-0)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Plus size={16} style={{ color: 'var(--primary)' }} /> Yangi kompaniya yaratish
+              </h3>
               <button className="btn-icon" onClick={() => setShowCreate(false)}><X size={18} /></button>
             </div>
-            <div className="modal-body">
-              <div className="input-group">
-                <label className="input-label">Nomi *</label>
-                <input className="input" placeholder="Kompaniya nomi" value={createForm.name} onChange={e => setCreateForm({ ...createForm, name: e.target.value })} />
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="input-group">
+                  <label className="input-label">Foydalanuvchi ID <span style={{ color: 'var(--red)' }}>*</span></label>
+                  <input className="input" type="number" placeholder="1" value={createForm.user_id}
+                    onChange={e => setCreateForm(p => ({ ...p, user_id: e.target.value }))} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Kompaniya nomi <span style={{ color: 'var(--red)' }}>*</span></label>
+                  <input className="input" placeholder="Kompaniya nomi" value={createForm.name}
+                    onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="input-group">
+                  <label className="input-label">STIR</label>
+                  <input className="input" placeholder="123456789" value={createForm.stir}
+                    onChange={e => setCreateForm(p => ({ ...p, stir: e.target.value }))} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Kontakt shaxs</label>
+                  <input className="input" placeholder="Ism Familiya" value={createForm.contact_person}
+                    onChange={e => setCreateForm(p => ({ ...p, contact_person: e.target.value }))} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="input-group">
+                  <label className="input-label">Telefon</label>
+                  <input className="input" placeholder="+998..." value={createForm.contact_phone}
+                    onChange={e => setCreateForm(p => ({ ...p, contact_phone: e.target.value }))} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Veb-sayt</label>
+                  <input className="input" placeholder="https://..." value={createForm.website}
+                    onChange={e => setCreateForm(p => ({ ...p, website: e.target.value }))} />
+                </div>
               </div>
               <div className="input-group">
-                <label className="input-label">STIR</label>
-                <input className="input" placeholder="302456789" value={createForm.stir} onChange={e => setCreateForm({ ...createForm, stir: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Direktor</label>
-                <input className="input" placeholder="F.I.O" value={createForm.director} onChange={e => setCreateForm({ ...createForm, director: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Email</label>
-                <input className="input" type="email" placeholder="info@company.uz" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Telefon</label>
-                <input className="input" placeholder="+998901234567" value={createForm.phone} onChange={e => setCreateForm({ ...createForm, phone: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Hudud</label>
-                <input className="input" placeholder="Toshkent" value={createForm.region} onChange={e => setCreateForm({ ...createForm, region: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Soha</label>
-                <input className="input" placeholder="IT, Qurilish, Tibbiyot..." value={createForm.industry} onChange={e => setCreateForm({ ...createForm, industry: e.target.value })} />
+                <label className="input-label">Manzil</label>
+                <input className="input" placeholder="Toshkent sh..." value={createForm.address}
+                  onChange={e => setCreateForm(p => ({ ...p, address: e.target.value }))} />
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setShowCreate(false)}>Bekor qilish</button>
-              <button className="btn btn-primary" onClick={handleCreate}>Saqlash</button>
+              <button className="btn btn-primary" onClick={createCompany} disabled={creating || !createForm.name.trim() || !createForm.user_id.trim()}>
+                {creating ? <><RefreshCw size={13} className="animate-spin" /> Yaratilmoqda...</> : <><Plus size={13} /> Yaratish</>}
+              </button>
             </div>
           </div>
         </div>

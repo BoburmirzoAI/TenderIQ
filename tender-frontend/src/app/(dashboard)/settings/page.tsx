@@ -237,6 +237,20 @@ export default function SettingsPage() {
     }
   };
 
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const handleSendVerification = async () => {
+    setSendingVerification(true);
+    try {
+      await api.post("/v1/auth/send-verification");
+      toast.success("Tasdiqlash xati yuborildi. Email manzilingizni tekshiring.");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(msg || "Xatolik yuz berdi");
+    } finally {
+      setSendingVerification(false);
+    }
+  };
+
   const handleLogoutAll = async () => {
     try {
       const { data } = await api.post("/v1/auth/logout-all");
@@ -351,6 +365,17 @@ export default function SettingsPage() {
                       <Badge variant={user?.is_verified ? "default" : "secondary"}>
                         {user?.is_verified ? "Ha" : "Yo'q"}
                       </Badge>
+                      {!user?.is_verified && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 text-xs text-primary"
+                          onClick={handleSendVerification}
+                          disabled={sendingVerification}
+                        >
+                          {sendingVerification ? "Yuborilmoqda..." : "Tasdiqlash xatini yuborish"}
+                        </Button>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Telegram:</span>
@@ -816,7 +841,7 @@ export default function SettingsPage() {
                     <p>
                       <span className="text-muted-foreground">Base URL:</span>{" "}
                       <code className="bg-background px-1 rounded">
-                        http://localhost:8000/api/v1
+                        {process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1
                       </code>
                     </p>
                     <p>
@@ -828,7 +853,7 @@ export default function SettingsPage() {
                     <p>
                       <span className="text-muted-foreground">Docs:</span>{" "}
                       <a
-                        href="http://localhost:8000/docs"
+                        href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/docs`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline"

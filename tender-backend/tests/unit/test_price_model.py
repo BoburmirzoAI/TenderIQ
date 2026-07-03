@@ -6,7 +6,7 @@ import tempfile
 import numpy as np
 import pytest
 
-from app.ml.price_model import PriceModel
+from app.ml.models.price_model import PriceModel
 
 
 class TestPriceModel:

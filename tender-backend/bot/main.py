@@ -52,27 +52,30 @@ async def main() -> None:
 
     from app.config import settings
 
-    await bot.set_my_commands([
-        BotCommand(command="start", description="Bosh menyu"),
-        BotCommand(command="tenders", description="Faol tenderlar"),
-        BotCommand(command="search", description="Tender qidirish"),
-        BotCommand(command="saved", description="Saqlangan tenderlar"),
-        BotCommand(command="stats", description="Statistika"),
-        BotCommand(command="map", description="Tender xaritasi"),
-        BotCommand(command="profile", description="Kompaniya profili"),
-        BotCommand(command="plan", description="Obuna rejasi"),
-        BotCommand(command="settings", description="Sozlamalar"),
-        BotCommand(command="link", description="Akkauntni ulash"),
-        BotCommand(command="help", description="Yordam"),
-    ])
+    try:
+        await bot.set_my_commands([
+            BotCommand(command="start", description="Bosh menyu"),
+            BotCommand(command="tenders", description="Faol tenderlar"),
+            BotCommand(command="search", description="Tender qidirish"),
+            BotCommand(command="saved", description="Saqlangan tenderlar"),
+            BotCommand(command="stats", description="Statistika"),
+            BotCommand(command="map", description="Tender xaritasi"),
+            BotCommand(command="profile", description="Kompaniya profili"),
+            BotCommand(command="plan", description="Obuna rejasi"),
+            BotCommand(command="settings", description="Sozlamalar"),
+            BotCommand(command="link", description="Akkauntni ulash"),
+            BotCommand(command="help", description="Yordam"),
+        ])
 
-    if settings.FRONTEND_URL.startswith("https://"):
-        await bot.set_chat_menu_button(
-            menu_button=MenuButtonWebApp(
-                text="🌐 TenderIQ",
-                web_app=WebAppInfo(url=settings.FRONTEND_URL),
+        if settings.FRONTEND_URL.startswith("https://"):
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="🌐 TenderIQ",
+                    web_app=WebAppInfo(url=settings.FRONTEND_URL),
+                )
             )
-        )
+    except Exception as e:
+        logger.warning("Telegram API ulanishda xato (bot ishlashda davom etadi): %s", e)
 
     logger.info("TenderIQ Bot starting...")
     await dp.start_polling(bot)

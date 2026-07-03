@@ -1,458 +1,520 @@
-import { useState } from 'react';
-import { Globe, Activity, Clock, AlertTriangle, X, ChevronDown, ChevronRight, Search, Zap } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useCallback, useEffect, useState } from 'react';
+import { Globe, Activity, AlertTriangle, Search, RefreshCw, ShieldCheck, ShieldOff, Plus, Trash2, Power, Save, X, Users, Lock, Zap, Database, BarChart3, FileText, Settings, Key } from 'lucide-react';
 import { useAdmin } from '../hooks/useAdmin';
+import { apiEndpointsApi, type APIRoute, type APIOverviewStats, type APIPermissionRule } from '../api/admin';
 
-interface Endpoint {
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
-  path: string;
-  module: string;
-  auth: boolean;
-  rateLimit: boolean | string;
-  avgResponse: number;
-  callsToday: number;
-  errors: number;
-  params?: string[];
-  description?: string;
-}
-
-const mockEndpoints: Endpoint[] = [
-  { method: 'POST', path: '/api/v1/auth/login', module: 'auth', auth: false, rateLimit: '10/min', avgResponse: 120, callsToday: 892, errors: 12, description: 'Foydalanuvchi email va parol orqali tizimga kiradi', params: ['email', 'password'] },
-  { method: 'POST', path: '/api/v1/auth/register', module: 'auth', auth: false, rateLimit: '5/min', avgResponse: 145, callsToday: 67, errors: 3, description: 'Yangi foydalanuvchi ro\'yxatdan o\'tadi', params: ['email', 'password', 'full_name'] },
-  { method: 'POST', path: '/api/v1/auth/refresh', module: 'auth', auth: true, rateLimit: '30/min', avgResponse: 45, callsToday: 1240, errors: 0, description: 'JWT access token yangilash' },
-  { method: 'GET', path: '/api/v1/auth/me', module: 'auth', auth: true, rateLimit: false, avgResponse: 32, callsToday: 2100, errors: 0, description: 'Joriy foydalanuvchi ma\'lumotlari' },
-  { method: 'PATCH', path: '/api/v1/auth/me', module: 'auth', auth: true, rateLimit: false, avgResponse: 85, callsToday: 156, errors: 2, description: 'Profil ma\'lumotlarini yangilash' },
-  { method: 'GET', path: '/api/v1/tenders/', module: 'tenders', auth: true, rateLimit: false, avgResponse: 180, callsToday: 4560, errors: 5, description: 'Filtrlar bilan tender ro\'yxatini qaytaradi', params: ['page', 'category', 'region', 'status', 'source', 'search'] },
-  { method: 'GET', path: '/api/v1/tenders/{id}', module: 'tenders', auth: true, rateLimit: false, avgResponse: 65, callsToday: 2340, errors: 8, description: 'Bitta tender tafsilotlari', params: ['id'] },
-  { method: 'GET', path: '/api/v1/tenders/matched/', module: 'tenders', auth: true, rateLimit: false, avgResponse: 320, callsToday: 1890, errors: 2, description: 'ML orqali mos kelgan tenderlar' },
-  { method: 'POST', path: '/api/v1/tenders/save/{match_id}', module: 'tenders', auth: true, rateLimit: false, avgResponse: 55, callsToday: 445, errors: 0, description: 'Tender match ni saqlash', params: ['match_id'] },
-  { method: 'GET', path: '/api/v1/tenders/calendar/', module: 'tenders', auth: true, rateLimit: false, avgResponse: 150, callsToday: 780, errors: 1, description: 'Muddatlar bo\'yicha tender kalendar' },
-  { method: 'POST', path: '/api/v1/companies/', module: 'companies', auth: true, rateLimit: '5/hour', avgResponse: 200, callsToday: 23, errors: 1, description: 'Kompaniya yaratish' },
-  { method: 'GET', path: '/api/v1/companies/me', module: 'companies', auth: true, rateLimit: false, avgResponse: 45, callsToday: 890, errors: 0, description: 'Joriy foydalanuvchi kompaniyasi' },
-  { method: 'PATCH', path: '/api/v1/companies/me', module: 'companies', auth: true, rateLimit: false, avgResponse: 95, callsToday: 67, errors: 0, description: 'Kompaniya ma\'lumotlarini yangilash' },
-  { method: 'GET', path: '/api/v1/companies/stats', module: 'companies', auth: true, rateLimit: false, avgResponse: 110, callsToday: 340, errors: 0, description: 'Kompaniya statistikasi' },
-  { method: 'GET', path: '/api/v1/competitors/top', module: 'competitors', auth: true, rateLimit: false, avgResponse: 250, callsToday: 560, errors: 3, description: 'Top raqobatchilar ro\'yxati' },
-  { method: 'GET', path: '/api/v1/competitors/profile/{stir}', module: 'competitors', auth: true, rateLimit: '20/min', avgResponse: 340, callsToday: 230, errors: 5, description: 'STIR bo\'yicha raqobatchi profili', params: ['stir'] },
-  { method: 'GET', path: '/api/v1/competitors/tender/{id}/predict', module: 'competitors', auth: true, rateLimit: '10/min', avgResponse: 890, callsToday: 120, errors: 2, description: 'Tender uchun raqobatchilarni ML orqali bashorat', params: ['id'] },
-  { method: 'POST', path: '/api/v1/ml/predict-price', module: 'ml', auth: true, rateLimit: '20/min', avgResponse: 450, callsToday: 340, errors: 8, description: 'ML orqali tender narxini bashorat qilish' },
-  { method: 'POST', path: '/api/v1/ml/win-probability', module: 'ml', auth: true, rateLimit: '20/min', avgResponse: 520, callsToday: 280, errors: 5, description: 'Tender yutish ehtimolligini hisoblash' },
-  { method: 'POST', path: '/api/v1/ml/tender-similarity', module: 'ml', auth: true, rateLimit: '15/min', avgResponse: 680, callsToday: 190, errors: 3, description: 'Tender o\'xshashlik tahlili' },
-  { method: 'POST', path: '/api/v1/ml/risk-assessment', module: 'ml', auth: true, rateLimit: '15/min', avgResponse: 410, callsToday: 150, errors: 2, description: 'Tender risk baholash' },
-  { method: 'GET', path: '/api/v1/analytics/competitors', module: 'analytics', auth: true, rateLimit: false, avgResponse: 290, callsToday: 450, errors: 1, description: 'Raqobatchilar tahlili' },
-  { method: 'GET', path: '/api/v1/analytics/price-history', module: 'analytics', auth: true, rateLimit: false, avgResponse: 210, callsToday: 380, errors: 0, description: 'Narx tarixi grafigi' },
-  { method: 'GET', path: '/api/v1/analytics/market', module: 'analytics', auth: true, rateLimit: false, avgResponse: 350, callsToday: 290, errors: 2, description: 'Bozor tahlili' },
-  { method: 'GET', path: '/api/v1/analytics/anomalies', module: 'analytics', auth: true, rateLimit: '30/min', avgResponse: 480, callsToday: 120, errors: 4, description: 'Anomaliyalarni aniqlash' },
-  { method: 'POST', path: '/api/v1/payments/create', module: 'payments', auth: true, rateLimit: '5/min', avgResponse: 350, callsToday: 45, errors: 2, description: 'To\'lov yaratish (Click/Payme)' },
-  { method: 'GET', path: '/api/v1/payments/history', module: 'payments', auth: true, rateLimit: false, avgResponse: 90, callsToday: 210, errors: 0, description: 'To\'lov tarixi' },
-  { method: 'POST', path: '/api/v1/payments/click/webhook', module: 'payments', auth: false, rateLimit: '100/min', avgResponse: 75, callsToday: 38, errors: 1, description: 'Click to\'lov tizimidan webhook' },
-  { method: 'POST', path: '/api/v1/payments/payme/webhook', module: 'payments', auth: false, rateLimit: '100/min', avgResponse: 80, callsToday: 42, errors: 0, description: 'Payme to\'lov tizimidan webhook' },
-  { method: 'GET', path: '/api/v1/notifications/', module: 'notifications', auth: true, rateLimit: false, avgResponse: 55, callsToday: 1560, errors: 0, description: 'Bildirishnomalar ro\'yxati' },
-  { method: 'GET', path: '/api/v1/notifications/stats', module: 'notifications', auth: true, rateLimit: false, avgResponse: 40, callsToday: 890, errors: 0, description: 'Bildirishnoma statistikasi' },
-  { method: 'PATCH', path: '/api/v1/notifications/{id}/read', module: 'notifications', auth: true, rateLimit: false, avgResponse: 30, callsToday: 670, errors: 0, description: 'Bildirishnomani o\'qilgan deb belgilash', params: ['id'] },
-  { method: 'PATCH', path: '/api/v1/notifications/read-all', module: 'notifications', auth: true, rateLimit: false, avgResponse: 45, callsToday: 230, errors: 0, description: 'Barcha bildirishnomalarni o\'qilgan deb belgilash' },
-  { method: 'GET', path: '/api/v1/admin/stats', module: 'admin', auth: true, rateLimit: false, avgResponse: 180, callsToday: 120, errors: 0, description: 'Admin dashboard statistikasi' },
-  { method: 'GET', path: '/api/v1/admin/users', module: 'admin', auth: true, rateLimit: false, avgResponse: 150, callsToday: 85, errors: 0, description: 'Barcha foydalanuvchilar ro\'yxati' },
-  { method: 'PATCH', path: '/api/v1/admin/users/{id}', module: 'admin', auth: true, rateLimit: false, avgResponse: 95, callsToday: 12, errors: 0, description: 'Foydalanuvchi ma\'lumotlarini yangilash', params: ['id'] },
-];
-
-const methodColors: Record<string, string> = {
-  GET: 'badge-green', POST: 'badge-primary', PATCH: 'badge-yellow', DELETE: 'badge-red',
-};
-
-const modules = [...new Set(mockEndpoints.map(e => e.module))];
-const totalCalls = mockEndpoints.reduce((s, e) => s + e.callsToday, 0);
-const avgResponseAll = Math.round(mockEndpoints.reduce((s, e) => s + e.avgResponse, 0) / mockEndpoints.length);
-const totalErrors = mockEndpoints.reduce((s, e) => s + e.errors, 0);
-const errorRate = ((totalErrors / totalCalls) * 100).toFixed(2);
-
-const responseTimeData = [
-  { time: '08:00', ms: 120 }, { time: '09:00', ms: 145 }, { time: '10:00', ms: 190 },
-  { time: '11:00', ms: 210 }, { time: '12:00', ms: 180 }, { time: '13:00', ms: 165 },
-  { time: '14:00', ms: 155 }, { time: '15:00', ms: 200 }, { time: '16:00', ms: 175 },
-];
-
-const mockResponse: Record<string, object> = {
-  GET: { id: 1, status: 'ok', data: { items: [], total: 0, page: 1 } },
-  POST: { id: 42, created: true, message: 'Created successfully' },
-  PATCH: { id: 42, updated: true, message: 'Updated successfully' },
-  DELETE: { deleted: true, message: 'Deleted successfully' },
+const METHOD_COLORS: Record<string, string> = {
+  GET: 'badge-green', POST: 'badge-primary', PATCH: 'badge-yellow',
+  DELETE: 'badge-red', PUT: 'badge-orange',
 };
 
 export default function APIEndpoints() {
-  const { addToast } = useAdmin();
-  const [selectedEndpoint, setSelectedEndpoint] = useState<Endpoint | null>(null);
-  const [testResult, setTestResult] = useState<Endpoint | null>(null);
-  const [filterModule, setFilterModule] = useState('all');
+  const { addToast, setActiveTab } = useAdmin();
+
+  const [routes, setRoutes] = useState<APIRoute[]>([]);
+  const [stats, setStats] = useState<APIOverviewStats | null>(null);
+  const [permissions, setPermissions] = useState<APIPermissionRule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'routes' | 'permissions'>('routes');
+
+  const [search, setSearch] = useState('');
+  const [filterTag, setFilterTag] = useState('all');
   const [filterMethod, setFilterMethod] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const [editingRateLimit, setEditingRateLimit] = useState<string | null>(null);
-  const [rateLimitValues, setRateLimitValues] = useState<Record<string, string>>({});
-  const [testingEndpoint, setTestingEndpoint] = useState<string | null>(null);
+  const [filterAuth, setFilterAuth] = useState('all');
 
-  const toggleGroup = (module: string) => {
-    setCollapsedGroups(prev => {
-      const next = new Set(prev);
-      next.has(module) ? next.delete(module) : next.add(module);
-      return next;
-    });
-  };
+  // Permission form
+  const [showForm, setShowForm] = useState(false);
+  const [editingRule, setEditingRule] = useState<APIPermissionRule | null>(null);
+  const [formPath, setFormPath] = useState('');
+  const [formMethod, setFormMethod] = useState('GET');
+  const [formEnabled, setFormEnabled] = useState(true);
+  const [formRoles, setFormRoles] = useState('');
+  const [formBlocked, setFormBlocked] = useState('');
+  const [formRateLimit, setFormRateLimit] = useState('');
+  const [formRateWindow, setFormRateWindow] = useState('60');
+  const [formDesc, setFormDesc] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const filtered = mockEndpoints.filter(e => {
-    if (filterModule !== 'all' && e.module !== filterModule) return false;
-    if (filterMethod !== 'all' && e.method !== filterMethod) return false;
-    if (searchQuery && !e.path.toLowerCase().includes(searchQuery.toLowerCase()) && !e.module.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [r, s, p] = await Promise.all([
+        apiEndpointsApi.routes(),
+        apiEndpointsApi.stats(),
+        apiEndpointsApi.permissions(),
+      ]);
+      setRoutes(r);
+      setStats(s);
+      setPermissions(p);
+    } catch {
+      addToast('Xatolik', "Ma'lumot yuklanmadi", 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => { load(); }, []);
+
+  const allTags = [...new Set(routes.flatMap(r => r.tags))].sort();
+
+  const filtered = routes.filter(r => {
+    if (filterMethod !== 'all' && !r.methods.includes(filterMethod)) return false;
+    if (filterTag !== 'all' && !r.tags.includes(filterTag)) return false;
+    if (filterAuth === 'auth' && !r.requires_auth) return false;
+    if (filterAuth === 'public' && r.requires_auth) return false;
+    if (search && !r.path.toLowerCase().includes(search.toLowerCase()) &&
+        !r.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  const grouped: Record<string, Endpoint[]> = {};
-  filtered.forEach(e => {
-    if (!grouped[e.module]) grouped[e.module] = [];
-    grouped[e.module].push(e);
-  });
+  const getPermForRoute = (path: string, method: string) =>
+    permissions.find(p => p.path === path && p.method === method);
 
-  const simulateTest = (ep: Endpoint) => {
-    setTestingEndpoint(ep.path);
-    addToast('Test', `${ep.method} ${ep.path} so'rovi yuborilmoqda...`, 'info');
-    setTimeout(() => {
-      setTestingEndpoint(null);
-      setTestResult(ep);
-    }, 1200);
+  const resetForm = () => {
+    setFormPath(''); setFormMethod('GET'); setFormEnabled(true);
+    setFormRoles(''); setFormBlocked(''); setFormRateLimit('');
+    setFormRateWindow('60'); setFormDesc(''); setEditingRule(null);
   };
 
-  const saveRateLimit = (path: string) => {
-    const val = rateLimitValues[path];
-    if (val) {
-      addToast('Saqlandi', `Rate limit yangilandi: ${val}`, 'success');
+  const openNewForm = (path?: string, method?: string) => {
+    resetForm();
+    if (path) setFormPath(path);
+    if (method) setFormMethod(method);
+    setShowForm(true);
+  };
+
+  const openEditForm = (rule: APIPermissionRule) => {
+    setEditingRule(rule);
+    setFormPath(rule.path);
+    setFormMethod(rule.method);
+    setFormEnabled(rule.is_enabled);
+    setFormRoles(rule.allowed_roles?.join(', ') || '');
+    setFormBlocked(rule.blocked_user_ids?.join(', ') || '');
+    setFormRateLimit(rule.rate_limit?.toString() || '');
+    setFormRateWindow(rule.rate_window.toString());
+    setFormDesc(rule.description || '');
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!formPath.trim()) return;
+    setSaving(true);
+    try {
+      const payload = {
+        path: formPath.trim(),
+        method: formMethod,
+        is_enabled: formEnabled,
+        allowed_roles: formRoles.trim() ? formRoles.split(',').map(s => s.trim()).filter(Boolean) : null,
+        blocked_user_ids: formBlocked.trim() ? formBlocked.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)) : null,
+        rate_limit: formRateLimit.trim() ? parseInt(formRateLimit) : null,
+        rate_window: parseInt(formRateWindow) || 60,
+        description: formDesc.trim() || null,
+      };
+
+      if (editingRule) {
+        const updated = await apiEndpointsApi.updatePermission(editingRule.id, payload);
+        setPermissions(prev => prev.map(p => p.id === editingRule.id ? updated : p));
+        addToast('Yangilandi', 'Qoida muvaffaqiyatli yangilandi', 'success');
+      } else {
+        const created = await apiEndpointsApi.createPermission(payload as any);
+        setPermissions(prev => [...prev, created]);
+        addToast('Yaratildi', 'Yangi qoida qo\'shildi', 'success');
+      }
+      setShowForm(false);
+      resetForm();
+    } catch (err: any) {
+      addToast('Xatolik', err?.response?.data?.detail || 'Saqlab bo\'lmadi', 'error');
+    } finally {
+      setSaving(false);
     }
-    setEditingRateLimit(null);
   };
+
+  const handleToggle = async (rule: APIPermissionRule) => {
+    try {
+      const updated = await apiEndpointsApi.togglePermission(rule.id);
+      setPermissions(prev => prev.map(p => p.id === rule.id ? updated : p));
+      addToast(updated.is_enabled ? 'Yoqildi' : 'O\'chirildi',
+        `${rule.method} ${rule.path}`, updated.is_enabled ? 'success' : 'info');
+    } catch {
+      addToast('Xatolik', 'Holatni o\'zgartirib bo\'lmadi', 'error');
+    }
+  };
+
+  const handleDelete = async (rule: APIPermissionRule) => {
+    if (!confirm(`${rule.method} ${rule.path} qoidasini o'chirmoqchimisiz?`)) return;
+    try {
+      await apiEndpointsApi.deletePermission(rule.id);
+      setPermissions(prev => prev.filter(p => p.id !== rule.id));
+      addToast('O\'chirildi', 'Qoida o\'chirildi', 'success');
+    } catch {
+      addToast('Xatolik', 'O\'chirib bo\'lmadi', 'error');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+        <RefreshCw size={24} className="animate-spin" style={{ color: 'var(--text-4)' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
       <div className="flex-between mb-24">
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)' }}>API Endpoints</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Barcha API endpointlar monitoring va boshqarish</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)' }}>API Endpointlar</h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Endpointlar, ruxsatlar va cheklovlarni boshqarish</p>
         </div>
-      </div>
-
-      <div className="grid-4 mb-24">
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Jami endpointlar</span>
-            <Globe size={16} style={{ color: 'var(--blue)' }} />
-          </div>
-          <div className="stat-value">{mockEndpoints.length}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Bugungi so'rovlar</span>
-            <Activity size={16} style={{ color: 'var(--green)' }} />
-          </div>
-          <div className="stat-value">{totalCalls.toLocaleString()}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">O'rt. javob vaqti</span>
-            <Clock size={16} style={{ color: 'var(--yellow)' }} />
-          </div>
-          <div className="stat-value">{avgResponseAll}ms</div>
-        </div>
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Xato darajasi</span>
-            <AlertTriangle size={16} style={{ color: 'var(--red)' }} />
-          </div>
-          <div className="stat-value" style={{ color: Number(errorRate) > 2 ? 'var(--red)' : 'var(--green)' }}>
-            {errorRate}%
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="card mb-16">
-        <div className="card-body" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
-            <input
-              className="input"
-              placeholder="Endpoint qidirish..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '32px' }}
-            />
-          </div>
-          <select
-            className="input"
-            style={{ width: '160px' }}
-            value={filterModule}
-            onChange={e => setFilterModule(e.target.value)}
-          >
-            <option value="all">Barcha modullar</option>
-            {modules.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-          <select
-            className="input"
-            style={{ width: '130px' }}
-            value={filterMethod}
-            onChange={e => setFilterMethod(e.target.value)}
-          >
-            <option value="all">Barcha usullar</option>
-            {['GET', 'POST', 'PATCH', 'DELETE'].map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-          {(filterModule !== 'all' || filterMethod !== 'all' || searchQuery) && (
-            <button
-              className="btn btn-sm btn-ghost"
-              onClick={() => { setFilterModule('all'); setFilterMethod('all'); setSearchQuery(''); }}
-            >
-              Barcha modullar
-            </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-ghost btn-sm" onClick={load}><RefreshCw size={13} /> Yangilash</button>
+          {tab === 'permissions' && (
+            <button className="btn btn-primary btn-sm" onClick={() => openNewForm()}><Plus size={13} /> Yangi qoida</button>
           )}
         </div>
       </div>
 
-      <div className="card">
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th style={{ padding: '12px 16px' }}>Method</th>
-                <th style={{ padding: '12px 16px' }}>Path</th>
-                <th style={{ padding: '12px 16px' }}>Auth</th>
-                <th style={{ padding: '12px 16px' }}>Rate limit</th>
-                <th style={{ padding: '12px 16px' }}>Javob</th>
-                <th style={{ padding: '12px 16px' }}>Bugun</th>
-                <th style={{ padding: '12px 16px' }}>Xato</th>
-                <th style={{ padding: '12px 16px' }}>Amallar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(grouped).map(([module, endpoints]) => (
-                <>
-                  <tr
-                    key={`header-${module}`}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => toggleGroup(module)}
-                  >
-                    <td
-                      colSpan={8}
-                      style={{
-                        padding: '10px 16px',
-                        background: 'var(--bg-1)',
-                        fontWeight: 700, fontSize: '12px', color: 'var(--text-0)',
-                        textTransform: 'uppercase', letterSpacing: '0.5px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {collapsedGroups.has(module)
-                          ? <ChevronRight size={14} />
-                          : <ChevronDown size={14} />}
-                        {module}
-                        <span className="badge badge-primary" style={{ textTransform: 'none', letterSpacing: 'normal' }}>
-                          {endpoints.length}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                  {!collapsedGroups.has(module) && endpoints.map((ep, i) => (
-                    <tr
-                      key={`${module}-${i}`}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => setSelectedEndpoint(ep)}
-                    >
-                      <td style={{ padding: '10px 16px' }}>
-                        <span className={`badge ${methodColors[ep.method]}`}>{ep.method}</span>
-                      </td>
-                      <td style={{ padding: '10px 16px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-1)' }}>
-                        {ep.path}
-                      </td>
-                      <td style={{ padding: '10px 16px' }}>
-                        {ep.auth
-                          ? <span style={{ color: 'var(--green)', fontSize: '12px' }}>Ha</span>
-                          : <span style={{ color: 'var(--text-4)', fontSize: '12px' }}>Yo'q</span>}
-                      </td>
-                      <td style={{ padding: '10px 16px' }} onClick={e => e.stopPropagation()}>
-                        {editingRateLimit === ep.path ? (
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            <input
-                              className="input"
-                              style={{ width: '80px', height: '28px', fontSize: '11px' }}
-                              defaultValue={typeof ep.rateLimit === 'string' ? ep.rateLimit : ''}
-                              onChange={e => setRateLimitValues(p => ({ ...p, [ep.path]: e.target.value }))}
-                              autoFocus
-                            />
-                            <button
-                              className="btn btn-sm btn-primary"
-                              style={{ padding: '2px 6px' }}
-                              onClick={() => saveRateLimit(ep.path)}
-                            >
-                              OK
-                            </button>
-                          </div>
-                        ) : (
-                          <span
-                            style={{
-                              fontSize: '12px',
-                              color: ep.rateLimit ? 'var(--yellow)' : 'var(--text-4)',
-                              cursor: 'pointer',
-                              textDecoration: 'underline dotted',
-                            }}
-                            onClick={() => setEditingRateLimit(ep.path)}
-                            title="Bosing tahrirlash uchun"
-                          >
-                            {ep.rateLimit || 'Yo\'q'}
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '10px 16px', fontSize: '13px' }}>{ep.avgResponse}ms</td>
-                      <td style={{ padding: '10px 16px', fontSize: '13px' }}>{ep.callsToday.toLocaleString()}</td>
-                      <td style={{ padding: '10px 16px' }}>
-                        {ep.errors > 0
-                          ? <span style={{ color: 'var(--red)', fontWeight: 600 }}>{ep.errors}</span>
-                          : <span style={{ color: 'var(--text-4)' }}>0</span>}
-                      </td>
-                      <td style={{ padding: '10px 16px' }} onClick={e => e.stopPropagation()}>
-                        <button
-                          className="btn btn-sm"
-                          onClick={() => simulateTest(ep)}
-                          disabled={testingEndpoint === ep.path}
-                        >
-                          {testingEndpoint === ep.path
-                            ? <Zap size={12} className="animate-spin" />
-                            : <><Zap size={12} /> Test</>}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: 'var(--bg-0)', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
+        {[
+          { id: 'routes' as const, label: 'Endpointlar', icon: Globe, count: routes.length },
+          { id: 'permissions' as const, label: 'Ruxsatlar', icon: Lock, count: permissions.length },
+        ].map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            style={{
+              padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: '6px', border: 'none', cursor: 'pointer',
+              background: tab === t.id ? 'white' : 'transparent',
+              color: tab === t.id ? 'var(--primary)' : 'var(--text-3)',
+              boxShadow: tab === t.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+            }}
+          >
+            <t.icon size={14} /> {t.label}
+            <span style={{
+              background: tab === t.id ? 'var(--primary-soft)' : 'var(--bg-1)',
+              padding: '1px 6px', borderRadius: '6px', fontSize: '11px',
+            }}>{t.count}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Detail modal */}
-      {selectedEndpoint && (
-        <div className="modal-overlay" onClick={() => setSelectedEndpoint(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px' }}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className={`badge ${methodColors[selectedEndpoint.method]}`}>{selectedEndpoint.method}</span>
-                <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-0)', fontFamily: 'monospace' }}>
-                  {selectedEndpoint.path}
-                </h2>
-              </div>
-              <button className="btn btn-sm btn-ghost btn-icon" onClick={() => setSelectedEndpoint(null)}>
-                <X size={14} />
-              </button>
+      {/* Quick Actions */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        {[
+          { label: 'API Keys', tab: 'api_keys', icon: Key, color: 'var(--primary)' },
+          { label: 'Infrastructure', tab: 'infrastructure', icon: Database, color: 'var(--teal)' },
+          { label: 'Platform Health', tab: 'health', icon: Activity, color: 'var(--green)' },
+          { label: 'Analitika', tab: 'analytics', icon: BarChart3, color: 'var(--yellow)' },
+          { label: 'Sozlamalar', tab: 'settings', icon: Settings, color: 'var(--purple)' },
+          { label: 'Hisobotlar', tab: 'reports', icon: FileText, color: 'var(--red)' },
+        ].map(btn => (
+          <button key={btn.label} className="btn btn-ghost btn-sm" onClick={() => setActiveTab?.(btn.tab)}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', borderColor: 'var(--border-1)' }}>
+            <btn.icon size={13} style={{ color: btn.color }} /> {btn.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats */}
+      {stats && (
+        <div className="grid-4 mb-24">
+          {[
+            { label: 'Jami endpointlar', value: stats.total_routes, color: 'var(--primary)' },
+            { label: 'Permission qoidalari', value: permissions.length, color: 'var(--teal)' },
+            { label: 'O\'chirilgan', value: permissions.filter(p => !p.is_enabled).length, color: 'var(--red)' },
+            { label: 'Rate limited', value: permissions.filter(p => p.rate_limit).length, color: 'var(--yellow)' },
+          ].map(s => (
+            <div key={s.label} className="card stat-card">
+              <div className="stat-label mb-8">{s.label}</div>
+              <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
             </div>
-            <div className="modal-body">
-              {selectedEndpoint.description && (
-                <p style={{ fontSize: '13px', color: 'var(--text-2)', marginBottom: '16px', lineHeight: 1.6 }}>
-                  {selectedEndpoint.description}
-                </p>
-              )}
-
-              <div className="grid-2 mb-16" style={{ gap: '10px' }}>
-                {[
-                  { label: 'Modul', value: selectedEndpoint.module },
-                  { label: 'Auth kerak', value: selectedEndpoint.auth ? 'Ha' : 'Yo\'q' },
-                  { label: 'Rate limit', value: selectedEndpoint.rateLimit ? String(selectedEndpoint.rateLimit) : 'Yo\'q' },
-                  { label: 'Bugungi xatolar', value: String(selectedEndpoint.errors) },
-                  { label: "O'rtacha javob", value: `${selectedEndpoint.avgResponse}ms` },
-                  { label: 'Bugungi so\'rovlar', value: selectedEndpoint.callsToday.toLocaleString() },
-                ].map(item => (
-                  <div key={item.label} style={{ padding: '10px 12px', background: 'var(--bg-1)', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-4)', marginBottom: '3px' }}>{item.label}</div>
-                    <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-0)' }}>{item.value}</div>
-                  </div>
-                ))}
-              </div>
-
-              {selectedEndpoint.params && (
-                <div style={{ marginBottom: '16px' }}>
-                  <h3 style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-0)' }}>Parametrlar</h3>
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {selectedEndpoint.params.map(p => (
-                      <span key={p} className="badge badge-primary" style={{ fontFamily: 'monospace' }}>{p}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div style={{ marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-0)' }}>
-                  Mock Response ({selectedEndpoint.method})
-                </h3>
-                <pre style={{
-                  background: 'var(--bg-0)', padding: '12px', borderRadius: '8px',
-                  fontSize: '11px', color: 'var(--text-2)', fontFamily: 'monospace',
-                  overflow: 'auto', border: '1px solid var(--border-1)'
-                }}>
-                  {JSON.stringify(mockResponse[selectedEndpoint.method], null, 2)}
-                </pre>
-              </div>
-
-              <h3 style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-0)' }}>
-                Javob vaqti (bugun)
-              </h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={responseTimeData}>
-                  <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ fontSize: '11px' }} />
-                  <Line type="monotone" dataKey="ms" stroke="var(--primary)" strokeWidth={2} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setSelectedEndpoint(null)}>Yopish</button>
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  simulateTest(selectedEndpoint);
-                  setSelectedEndpoint(null);
-                }}
-              >
-                <Zap size={13} /> Test yuborish
-              </button>
-            </div>
-          </div>
+          ))}
         </div>
       )}
 
-      {/* Test result modal */}
-      {testResult && (
-        <div className="modal-overlay" onClick={() => setTestResult(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className={`badge ${methodColors[testResult.method]}`}>{testResult.method}</span>
-                <span style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--text-1)' }}>{testResult.path}</span>
+      {/* Routes Tab */}
+      {tab === 'routes' && (
+        <>
+          <div className="card mb-16">
+            <div className="card-body" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: '1 1 220px' }}>
+                <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
+                <input className="input" style={{ paddingLeft: '32px' }} placeholder="Path yoki nom bo'yicha..." value={search} onChange={e => setSearch(e.target.value)} />
               </div>
-              <button className="btn btn-sm btn-ghost btn-icon" onClick={() => setTestResult(null)}>
-                <X size={14} />
-              </button>
+              <select className="input select" style={{ width: '140px' }} value={filterMethod} onChange={e => setFilterMethod(e.target.value)}>
+                <option value="all">Barcha metodlar</option>
+                {['GET', 'POST', 'PATCH', 'DELETE', 'PUT'].map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <select className="input select" style={{ width: '160px' }} value={filterTag} onChange={e => setFilterTag(e.target.value)}>
+                <option value="all">Barcha teglar</option>
+                {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <select className="input select" style={{ width: '140px' }} value={filterAuth} onChange={e => setFilterAuth(e.target.value)}>
+                <option value="all">Hammasi</option>
+                <option value="auth">Auth talab</option>
+                <option value="public">Ochiq</option>
+              </select>
+              <span style={{ fontSize: '12px', color: 'var(--text-4)' }}>{filtered.length} ta</span>
             </div>
-            <div className="modal-body">
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-                <span className="badge badge-green">200 OK</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>
-                  {Math.floor(Math.random() * 100 + 20)}ms
-                </span>
+          </div>
+
+          <div className="card mb-24">
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th style={{ padding: '12px 16px' }}>Metod</th>
+                    <th style={{ padding: '12px 16px' }}>Path</th>
+                    <th style={{ padding: '12px 16px' }}>Teglar</th>
+                    <th style={{ padding: '12px 16px' }}>Auth</th>
+                    <th style={{ padding: '12px 16px' }}>Permission</th>
+                    <th style={{ padding: '12px 16px' }}>Amallar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r, i) => {
+                    const perm = r.methods.length === 1 ? getPermForRoute(r.path, r.methods[0]) : null;
+                    return (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '10px 16px' }}>
+                          {r.methods.map(m => (
+                            <span key={m} className={`badge ${METHOD_COLORS[m] ?? 'badge-purple'}`} style={{ marginRight: '4px', fontSize: '11px' }}>{m}</span>
+                          ))}
+                        </td>
+                        <td style={{ padding: '10px 16px' }}>
+                          <code style={{ fontSize: '12px', color: 'var(--text-0)', fontFamily: 'monospace' }}>{r.path}</code>
+                        </td>
+                        <td style={{ padding: '10px 16px' }}>
+                          {r.tags.map(t => (
+                            <span key={t} className="badge badge-purple" style={{ fontSize: '10px', marginRight: '4px' }}>{t}</span>
+                          ))}
+                        </td>
+                        <td style={{ padding: '10px 16px' }}>
+                          {r.requires_auth ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--green)', fontSize: '12px' }}>
+                              <ShieldCheck size={13} /> Auth
+                            </span>
+                          ) : (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-4)', fontSize: '12px' }}>
+                              <ShieldOff size={13} /> Ochiq
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 16px' }}>
+                          {perm ? (
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                              {!perm.is_enabled && <span className="badge badge-red" style={{ fontSize: '10px' }}>O'chirilgan</span>}
+                              {perm.is_enabled && perm.allowed_roles?.length ? <span className="badge badge-primary" style={{ fontSize: '10px' }}>{perm.allowed_roles.length} role</span> : null}
+                              {perm.blocked_user_ids?.length ? <span className="badge badge-red" style={{ fontSize: '10px' }}>{perm.blocked_user_ids.length} blocked</span> : null}
+                              {perm.rate_limit ? <span className="badge badge-yellow" style={{ fontSize: '10px' }}>{perm.rate_limit}/min</span> : null}
+                              {perm.is_enabled && !perm.allowed_roles?.length && !perm.blocked_user_ids?.length && !perm.rate_limit && <span className="badge badge-green" style={{ fontSize: '10px' }}>Ochiq</span>}
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--text-4)', fontSize: '11px' }}>—</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 16px' }}>
+                          {r.methods.map(m => (
+                            <button key={m} className="btn btn-ghost btn-sm" style={{ fontSize: '11px', padding: '2px 8px' }}
+                              onClick={() => {
+                                const existing = getPermForRoute(r.path, m);
+                                if (existing) openEditForm(existing);
+                                else openNewForm(r.path, m);
+                              }}
+                            >
+                              {getPermForRoute(r.path, m) ? 'Tahrirlash' : '+ Qoida'}
+                            </button>
+                          ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Permissions Tab */}
+      {tab === 'permissions' && (
+        <div className="card">
+          {permissions.length === 0 ? (
+            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-4)' }}>
+              <Lock size={40} style={{ marginBottom: '16px', opacity: 0.3 }} />
+              <p style={{ fontSize: '14px', fontWeight: 600 }}>Hali permission qoidalari yo'q</p>
+              <p style={{ fontSize: '12px', marginTop: '4px' }}>Endpointlar tabidan qoida qo'shing yoki "Yangi qoida" tugmasini bosing</p>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th style={{ padding: '12px 16px' }}>Holat</th>
+                    <th style={{ padding: '12px 16px' }}>Metod</th>
+                    <th style={{ padding: '12px 16px' }}>Path</th>
+                    <th style={{ padding: '12px 16px' }}>Rollar</th>
+                    <th style={{ padding: '12px 16px' }}>Bloklangan</th>
+                    <th style={{ padding: '12px 16px' }}>Rate Limit</th>
+                    <th style={{ padding: '12px 16px' }}>Amallar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {permissions.map(p => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border)', opacity: p.is_enabled ? 1 : 0.5 }}>
+                      <td style={{ padding: '10px 16px' }}>
+                        <button
+                          onClick={() => handleToggle(p)}
+                          style={{
+                            width: '36px', height: '20px', borderRadius: '10px', border: 'none', cursor: 'pointer', position: 'relative',
+                            background: p.is_enabled ? 'var(--green)' : 'var(--border-1)',
+                            transition: 'background 0.2s',
+                          }}
+                        >
+                          <div style={{
+                            width: '16px', height: '16px', borderRadius: '50%', background: 'white',
+                            position: 'absolute', top: '2px', transition: 'left 0.2s',
+                            left: p.is_enabled ? '18px' : '2px',
+                          }} />
+                        </button>
+                      </td>
+                      <td style={{ padding: '10px 16px' }}>
+                        <span className={`badge ${METHOD_COLORS[p.method] ?? 'badge-purple'}`} style={{ fontSize: '11px' }}>{p.method}</span>
+                      </td>
+                      <td style={{ padding: '10px 16px' }}>
+                        <code style={{ fontSize: '12px', fontFamily: 'monospace' }}>{p.path}</code>
+                        {p.description && <div style={{ fontSize: '11px', color: 'var(--text-4)', marginTop: '2px' }}>{p.description}</div>}
+                      </td>
+                      <td style={{ padding: '10px 16px' }}>
+                        {p.allowed_roles?.length ? (
+                          <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                            {p.allowed_roles.map(r => <span key={r} className="badge badge-primary" style={{ fontSize: '10px' }}>{r}</span>)}
+                          </div>
+                        ) : <span style={{ color: 'var(--text-4)', fontSize: '11px' }}>Barchaga</span>}
+                      </td>
+                      <td style={{ padding: '10px 16px' }}>
+                        {p.blocked_user_ids?.length ? (
+                          <span className="badge badge-red" style={{ fontSize: '10px' }}>
+                            <Users size={10} /> {p.blocked_user_ids.length} ta user
+                          </span>
+                        ) : <span style={{ color: 'var(--text-4)', fontSize: '11px' }}>—</span>}
+                      </td>
+                      <td style={{ padding: '10px 16px' }}>
+                        {p.rate_limit ? (
+                          <span className="badge badge-yellow" style={{ fontSize: '10px' }}>
+                            <Zap size={10} /> {p.rate_limit} / {p.rate_window}s
+                          </span>
+                        ) : <span style={{ color: 'var(--text-4)', fontSize: '11px' }}>—</span>}
+                      </td>
+                      <td style={{ padding: '10px 16px' }}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }} onClick={() => openEditForm(p)}>
+                            <Save size={12} />
+                          </button>
+                          <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px', color: 'var(--red)' }} onClick={() => handleDelete(p)}>
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Permission Form Modal */}
+      {showForm && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: '540px' }}>
+            <div className="modal-header">
+              <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Lock size={18} style={{ color: 'var(--primary)' }} />
+                {editingRule ? 'Qoidani tahrirlash' : 'Yangi permission qoidasi'}
+              </h3>
+              <button className="btn-icon" onClick={() => { setShowForm(false); resetForm(); }}><X size={18} /></button>
+            </div>
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <div style={{ display: 'grid', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '12px' }}>
+                  <div className="input-group">
+                    <label className="input-label">Endpoint path</label>
+                    <input className="input" value={formPath} onChange={e => setFormPath(e.target.value)}
+                      placeholder="/api/v1/tenders/" disabled={!!editingRule} />
+                  </div>
+                  <div className="input-group">
+                    <label className="input-label">Metod</label>
+                    <select className="input select" value={formMethod} onChange={e => setFormMethod(e.target.value)} disabled={!!editingRule}>
+                      {['GET', 'POST', 'PATCH', 'PUT', 'DELETE'].map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <label className="input-label" style={{ margin: 0 }}>Endpoint holati</label>
+                    <button
+                      onClick={() => setFormEnabled(!formEnabled)}
+                      style={{
+                        width: '42px', height: '22px', borderRadius: '11px', border: 'none', cursor: 'pointer', position: 'relative',
+                        background: formEnabled ? 'var(--green)' : 'var(--red)',
+                      }}
+                    >
+                      <div style={{
+                        width: '18px', height: '18px', borderRadius: '50%', background: 'white',
+                        position: 'absolute', top: '2px',
+                        left: formEnabled ? '22px' : '2px',
+                        transition: 'left 0.2s',
+                      }} />
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '11px', color: formEnabled ? 'var(--green)' : 'var(--red)' }}>
+                    {formEnabled ? 'Yoqilgan — foydalanuvchilar foydalana oladi' : 'O\'chirilgan — 403 qaytariladi'}
+                  </span>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Ruxsat berilgan rollar (vergul bilan)</label>
+                  <input className="input" value={formRoles} onChange={e => setFormRoles(e.target.value)}
+                    placeholder="admin, manager, editor — bo'sh = barchaga" />
+                  <span style={{ fontSize: '11px', color: 'var(--text-4)' }}>Faqat shu rollardagi foydalanuvchilar kirishi mumkin. Bo'sh qoldirsa — cheklov yo'q</span>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Bloklangan user ID'lar (vergul bilan)</label>
+                  <input className="input" value={formBlocked} onChange={e => setFormBlocked(e.target.value)}
+                    placeholder="1, 5, 23 — bo'sh = hech kim bloklanmagan" />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="input-group">
+                    <label className="input-label">Rate limit (so'rovlar soni)</label>
+                    <input className="input" type="number" value={formRateLimit} onChange={e => setFormRateLimit(e.target.value)}
+                      placeholder="Bo'sh = cheklovsiz" />
+                  </div>
+                  <div className="input-group">
+                    <label className="input-label">Vaqt oynasi (soniya)</label>
+                    <input className="input" type="number" value={formRateWindow} onChange={e => setFormRateWindow(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Izoh</label>
+                  <input className="input" value={formDesc} onChange={e => setFormDesc(e.target.value)}
+                    placeholder="Ixtiyoriy izoh..." />
+                </div>
               </div>
-              <h3 style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-0)' }}>Response Body</h3>
-              <pre style={{
-                background: 'var(--bg-0)', padding: '12px', borderRadius: '8px',
-                fontSize: '11px', color: 'var(--text-2)', fontFamily: 'monospace',
-                overflow: 'auto', border: '1px solid var(--border-1)'
-              }}>
-                {JSON.stringify(mockResponse[testResult.method], null, 2)}
-              </pre>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setTestResult(null)}>Yopish</button>
+              <button className="btn btn-ghost" onClick={() => { setShowForm(false); resetForm(); }}>Bekor qilish</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving || !formPath.trim()}>
+                {saving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+                {editingRule ? 'Yangilash' : 'Yaratish'}
+              </button>
             </div>
           </div>
         </div>

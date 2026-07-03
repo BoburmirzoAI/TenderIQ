@@ -8,7 +8,7 @@ class TestMatchingScore:
 
     @pytest.fixture
     def matching_service(self, db_session):
-        from app.services.matching_service import MatchingService
+        from app.services.tenders.matching_service import MatchingService
         return MatchingService(db_session)
 
     async def test_high_text_similarity(self, matching_service):

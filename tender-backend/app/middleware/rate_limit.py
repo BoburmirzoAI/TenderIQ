@@ -7,6 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from app.config import settings
 from app.constants import PLAN_LIMITS, SubscriptionPlan
 
 logger = logging.getLogger(__name__)
@@ -32,9 +33,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """Check rate limits before processing the request."""
-        from app.config import settings
-
-        if not settings.is_production:
+        if settings.APP_ENV == "test":
             return await call_next(request)
 
         path = request.url.path
@@ -49,17 +48,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         user_id = getattr(request.state, "user_id", None) if hasattr(request, "state") else None
 
         try:
-            import redis.asyncio as aioredis
+            from app.services.auth.cache_service import cache_service
 
-            from app.config import settings
-
-            r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
             today = date.today().isoformat()
 
             if user_id:
                 key = f"rate_limit:{user_id}:{today}"
-                plan_key = f"user_plan:{user_id}"
-                plan_name = await r.get(plan_key)
+                plan_name = await cache_service.get(f"user_plan:{user_id}")
                 try:
                     plan = SubscriptionPlan(plan_name) if plan_name else SubscriptionPlan.FREE
                 except ValueError:
@@ -70,11 +65,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 key = f"rate_limit:anon:{client_ip}:{today}"
                 limit = ANONYMOUS_DAILY_LIMIT
 
-            current = await r.incr(key)
+            current = await cache_service.increment(key)
             if current == 1:
-                await r.expire(key, 86400)
-
-            await r.close()
+                await cache_service.expire(key, 86400)
 
             if current > limit:
                 return JSONResponse(

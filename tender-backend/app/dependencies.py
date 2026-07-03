@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.constants import PLAN_LIMITS, SubscriptionPlan
 from app.database import get_db
 from app.exceptions import ForbiddenException, PlanLimitException, UnauthorizedException
-from app.models.user import User
-from app.repositories.subscription_repo import SubscriptionRepository
-from app.repositories.user_repo import UserRepository
+from app.models.auth.user import User
+from app.repositories.finance.subscription_repo import SubscriptionRepository
+from app.repositories.auth.user_repo import UserRepository
 from app.utils.security import decode_token, hash_api_key
 
 logger = logging.getLogger(__name__)
@@ -48,6 +48,11 @@ async def get_current_user(
     if not user or not user.is_active:
         raise UnauthorizedException("User not found or inactive")
 
+    # Reject tokens issued before password change or logout-all
+    token_ver = payload.get("ver")
+    if token_ver is not None and token_ver != user.token_version:
+        raise UnauthorizedException("Token invalidated — please log in again")
+
     return user
 
 
@@ -59,6 +64,8 @@ async def get_optional_user(
     if not authorization or not authorization.startswith("Bearer "):
         return None
 
+    from app.exceptions import UnauthorizedException
+
     try:
         token = authorization.split(" ", 1)[1]
         payload = decode_token(token)
@@ -66,8 +73,9 @@ async def get_optional_user(
         if user_id:
             user_repo = UserRepository(db)
             return await user_repo.get_by_id(int(user_id))
-    except Exception:
-        pass
+    except UnauthorizedException:
+        # Expired or invalid token — anonymous access is allowed here
+        return None
     return None
 
 
@@ -83,6 +91,27 @@ async def require_superadmin(user: User = Depends(get_current_user)) -> User:
     if not user.is_superadmin:
         raise ForbiddenException("Superadmin access required")
     return user
+
+
+def require_permission(permission_name: str):
+    """Factory — require a specific permission (or admin/superadmin)."""
+
+    async def _check(user: User = Depends(get_current_user)) -> User:
+        if user.is_admin or user.is_superadmin:
+            return user
+
+        user_perms = set()
+        if user.roles:
+            for role in user.roles:
+                if role.permissions:
+                    for perm in role.permissions:
+                        user_perms.add(perm.name)
+
+        if permission_name not in user_perms:
+            raise ForbiddenException(f"'{permission_name}' ruxsati talab qilinadi")
+        return user
+
+    return _check
 
 
 def require_plan(feature: str):

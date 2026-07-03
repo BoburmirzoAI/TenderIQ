@@ -13,6 +13,7 @@ from app.database import create_db_tables
 from app.exceptions import TenderIQException
 from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.logging_middleware import LoggingMiddleware
+from app.middleware.permission_middleware import PermissionMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 
 
@@ -34,6 +35,7 @@ app = FastAPI(
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(RateLimitMiddleware)
+app.add_middleware(PermissionMiddleware)
 app.add_middleware(AuthMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(
@@ -41,7 +43,7 @@ app.add_middleware(
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With", "X-API-Key"],
 )
 
 app.include_router(api_router, prefix="/api")

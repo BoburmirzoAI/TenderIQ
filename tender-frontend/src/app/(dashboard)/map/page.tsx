@@ -280,7 +280,7 @@ export default function MapPage() {
       </div>
 
       <div className="flex gap-3">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -291,15 +291,15 @@ export default function MapPage() {
             <SelectItem value="awarded">Yakunlangan</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+        <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v ?? "all")}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Kategoriya" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Barchasi</SelectItem>
-            {Object.entries(CATEGORIES || {}).map(([key, label]) => (
-              <SelectItem key={key} value={key}>
-                {label as string}
+            {CATEGORIES.map((cat) => (
+              <SelectItem key={cat.value} value={cat.value}>
+                {cat.label}
               </SelectItem>
             ))}
           </SelectContent>

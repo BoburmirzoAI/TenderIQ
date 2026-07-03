@@ -1,387 +1,400 @@
-import { useState } from 'react';
-import { Wifi, MessageSquare, TrendingUp, Clock, Radio, Zap, X, AlertTriangle, User } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Wifi, MessageSquare, Radio, RefreshCw, Activity, X, ChevronRight, User, Globe, Monitor, Download, Database, BarChart3, FileText, Settings, Terminal } from 'lucide-react';
 import { useAdmin } from '../hooks/useAdmin';
+import { wsMonitorApi, type WSActivity, type ActivityEvent } from '../api/admin';
 
-interface WsConnection {
-  id: string;
-  user: string;
-  user_email: string;
-  user_plan: string;
-  connected_at: string;
-  messages_sent: number;
-  messages_received: number;
-  last_activity: string;
-  channel: string;
+const ACTION_COLOR: Record<string, string> = {
+  login: 'var(--green)',
+  logout: 'var(--red)',
+  create: 'var(--primary)',
+  update: 'var(--yellow)',
+  delete: 'var(--red)',
+  view: 'var(--teal)',
+  feature_flag: 'var(--orange, #f0883e)',
+};
+
+const exportCSV = (filename: string, headers: string[], rows: any[][]) => {
+  const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+};
+
+const actionColor = (action: string) => {
+  for (const [key, color] of Object.entries(ACTION_COLOR)) {
+    if (action.includes(key)) return color;
+  }
+  return 'var(--text-3)';
+};
+
+const actionBadge = (action: string) => {
+  const color = actionColor(action);
+  return (
+    <span style={{ fontSize: '11px', fontWeight: 700, color, background: `${color}18`, padding: '2px 8px', borderRadius: '12px', border: `1px solid ${color}40` }}>
+      {action}
+    </span>
+  );
+};
+
+function timeAgo(dateStr: string): string {
+  const now = new Date();
+  const then = new Date(dateStr);
+  const diff = Math.floor((now.getTime() - then.getTime()) / 1000);
+  if (diff < 60) return `${diff}s oldin`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m oldin`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}s oldin`;
+  return `${Math.floor(diff / 86400)}k oldin`;
 }
-
-interface WsEvent {
-  id: number;
-  type: 'tender_new' | 'stats_update' | 'notification' | 'activity';
-  channel: string;
-  message: string;
-  timestamp: string;
-}
-
-const mockConnections: WsConnection[] = [
-  { id: 'ws-001', user: 'Bobur Sobirjonov', user_email: 'bobur@mail.uz', user_plan: 'business', connected_at: '2026-06-17 08:15', messages_sent: 142, messages_received: 89, last_activity: '2026-06-17 14:28', channel: 'tenders' },
-  { id: 'ws-002', user: 'Jasur Karimov', user_email: 'jasur@mail.uz', user_plan: 'pro', connected_at: '2026-06-17 09:30', messages_sent: 87, messages_received: 56, last_activity: '2026-06-17 14:25', channel: 'tenders' },
-  { id: 'ws-003', user: 'Sherzod Umarov', user_email: 'sherzod@mail.uz', user_plan: 'pro', connected_at: '2026-06-17 10:00', messages_sent: 56, messages_received: 34, last_activity: '2026-06-17 14:30', channel: 'notifications' },
-  { id: 'ws-004', user: 'Dilnoza Rahimova', user_email: 'dilnoza@mail.uz', user_plan: 'business', connected_at: '2026-06-17 11:45', messages_sent: 34, messages_received: 21, last_activity: '2026-06-17 14:22', channel: 'stats' },
-  { id: 'ws-005', user: 'Otabek Mirzayev', user_email: 'otabek@mail.uz', user_plan: 'free', connected_at: '2026-06-17 12:20', messages_sent: 23, messages_received: 15, last_activity: '2026-06-17 14:29', channel: 'tenders' },
-];
-
-const mockEvents: WsEvent[] = [
-  { id: 1, type: 'tender_new', channel: 'tenders', message: 'Yangi tender: IT uskunalar yetkazib berish (UZEX)', timestamp: '14:30:12' },
-  { id: 2, type: 'notification', channel: 'notifications', message: 'Bildirishnoma yuborildi: 12 ta foydalanuvchiga', timestamp: '14:29:45' },
-  { id: 3, type: 'stats_update', channel: 'stats', message: 'Dashboard statistikasi yangilandi', timestamp: '14:28:30' },
-  { id: 4, type: 'tender_new', channel: 'tenders', message: 'Yangi tender: Transport xizmatlari (MC.uz)', timestamp: '14:27:15' },
-  { id: 5, type: 'activity', channel: 'tenders', message: 'Tender #1024 holati o\'zgartirildi: active -> awarded', timestamp: '14:25:50' },
-  { id: 6, type: 'notification', channel: 'notifications', message: 'Deadline eslatmasi: 5 ta tender ertaga tugaydi', timestamp: '14:24:00' },
-  { id: 7, type: 'tender_new', channel: 'tenders', message: 'Yangi tender: Dori vositalari (MyGov)', timestamp: '14:22:30' },
-  { id: 8, type: 'stats_update', channel: 'stats', message: 'ML model natijalari yangilandi', timestamp: '14:20:15' },
-  { id: 9, type: 'activity', channel: 'tenders', message: 'Foydalanuvchi #45 tender saqladi: #1031', timestamp: '14:18:45' },
-  { id: 10, type: 'notification', channel: 'notifications', message: 'Yangi match topildi: 3 ta foydalanuvchi uchun', timestamp: '14:16:20' },
-  { id: 11, type: 'tender_new', channel: 'tenders', message: 'Yangi tender: Qurilish materiallari (UZEX)', timestamp: '14:14:00' },
-  { id: 12, type: 'stats_update', channel: 'stats', message: 'Scraper natijasi: 28 ta yangi tender', timestamp: '14:12:30' },
-  { id: 13, type: 'activity', channel: 'tenders', message: 'Tender #1055 muddati uzaytirildi', timestamp: '14:10:15' },
-  { id: 14, type: 'notification', channel: 'notifications', message: 'Haftalik hisobot yuborildi: 156 ta foydalanuvchi', timestamp: '14:08:00' },
-  { id: 15, type: 'tender_new', channel: 'tenders', message: 'Yangi tender: Server jihozlari (MC.uz)', timestamp: '14:05:45' },
-];
-
-const eventTypeColors: Record<string, string> = {
-  tender_new: 'badge-green',
-  stats_update: 'badge-primary',
-  notification: 'badge-yellow',
-  activity: 'badge-cyan',
-};
-
-const eventTypeLabels: Record<string, string> = {
-  tender_new: 'Yangi tender',
-  stats_update: 'Stats',
-  notification: 'Bildirishnoma',
-  activity: 'Faoliyat',
-};
-
-const channelStats = [
-  { name: 'tenders', subscribers: 3, icon: Radio, color: 'var(--green)' },
-  { name: 'stats', subscribers: 1, icon: TrendingUp, color: 'var(--blue)' },
-  { name: 'notifications', subscribers: 1, icon: MessageSquare, color: 'var(--yellow)' },
-];
-
-const planBadge = (plan: string) => {
-  if (plan === 'business') return 'badge-purple';
-  if (plan === 'pro') return 'badge-blue';
-  return 'badge-primary';
-};
-
-const getConnectedDuration = (connected_at: string) => {
-  const parts = connected_at.split(' ')[1].split(':');
-  const connectedMinutes = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-  const nowParts = '14:30'.split(':');
-  const nowMinutes = parseInt(nowParts[0]) * 60 + parseInt(nowParts[1]);
-  const diff = nowMinutes - connectedMinutes;
-  if (diff < 60) return `${diff}m`;
-  return `${Math.floor(diff / 60)}s ${diff % 60}m`;
-};
 
 export default function WebSocketMonitor() {
-  const { addToast } = useAdmin();
-  const [eventFilter, setEventFilter] = useState('all');
-  const [selectedConn, setSelectedConn] = useState<WsConnection | null>(null);
-  const [confirmDisconnect, setConfirmDisconnect] = useState<WsConnection | null>(null);
-  const [connections, setConnections] = useState(mockConnections);
-  const [testMsgLoading, setTestMsgLoading] = useState(false);
+  const { addToast, setActiveTab } = useAdmin();
+  const [data, setData] = useState<WSActivity | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [limit, setLimit] = useState(30);
+  const [selectedEvent, setSelectedEvent] = useState<ActivityEvent | null>(null);
+  const [filterChannel, setFilterChannel] = useState<string | null>(null);
+  const [searchAction, setSearchAction] = useState('');
 
-  const filteredEvents = eventFilter === 'all'
-    ? mockEvents
-    : mockEvents.filter(e => e.type === eventFilter);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      setData(await wsMonitorApi.activity(limit));
+    } catch {
+      addToast('Xatolik', "Faollik yuklanmadi", 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast, limit]);
 
-  const disconnectUser = (conn: WsConnection) => {
-    setConnections(p => p.filter(c => c.id !== conn.id));
-    setConfirmDisconnect(null);
-    setSelectedConn(null);
-    addToast('Uzildi', `${conn.user} ulanishi uzildi`, 'success');
-  };
+  useEffect(() => { load(); }, [limit]);
 
-  const sendTestMessage = () => {
-    setTestMsgLoading(true);
-    addToast('Test', 'Test xabari barcha kanallarga yuborilmoqda...', 'info');
-    setTimeout(() => {
-      setTestMsgLoading(false);
-      addToast('Yuborildi', `Test xabari ${connections.length} ta ulanishga yetkazildi`, 'success');
-    }, 1200);
-  };
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(load, 5000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, load]);
+
+  const channels = data?.channels ?? {};
+  const channelList = Object.entries(channels).sort((a, b) => b[1] - a[1]);
+
+  const filteredEvents = (data?.events ?? []).filter(ev => {
+    if (filterChannel && ev.resource_type !== filterChannel) return false;
+    if (searchAction && !ev.action.toLowerCase().includes(searchAction.toLowerCase()) && !(ev.user_email || '').toLowerCase().includes(searchAction.toLowerCase())) return false;
+    return true;
+  });
+
+  if (loading && !data) {
+    return (
+      <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+        <RefreshCw size={24} className="animate-spin" style={{ color: 'var(--text-4)' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
       <div className="flex-between mb-24">
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)' }}>WebSocket Monitor</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Real-time ulanishlar va xabarlar</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 800 }}>Faollik Monitoru</h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Tizim audit loglari va foydalanuvchi faolligi</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button
-            className="btn btn-sm btn-primary"
-            onClick={sendTestMessage}
-            disabled={testMsgLoading}
+            className={`btn btn-sm ${autoRefresh ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setAutoRefresh(a => !a)}
           >
-            {testMsgLoading
-              ? <><Zap size={13} className="animate-spin" /> Yuborilmoqda</>
-              : <><Zap size={13} /> Test xabar</>}
+            {autoRefresh && <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--green)', animation: 'pulse 1.5s ease-in-out infinite', marginRight: '4px' }} />}
+            <Radio size={13} /> {autoRefresh ? 'Jonli (5s)' : 'Jonli rejim'}
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--green)', display: 'inline-block' }} />
-            <span style={{ fontSize: '13px', color: 'var(--green)', fontWeight: 600 }}>Live</span>
-          </div>
+          <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+          </button>
         </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        {[
+          { label: 'Infrastructure', tab: 'infrastructure', icon: Database, color: 'var(--primary)' },
+          { label: 'Platform Health', tab: 'health', icon: Activity, color: 'var(--teal)' },
+          { label: 'Konteyner loglar', tab: 'container_logs', icon: Terminal, color: 'var(--green)' },
+          { label: 'API Endpoints', tab: 'api_endpoints', icon: Globe, color: 'var(--yellow)' },
+          { label: 'Analitika', tab: 'analytics', icon: BarChart3, color: 'var(--purple)' },
+          { label: 'Sozlamalar', tab: 'settings', icon: Settings, color: 'var(--red)' },
+        ].map(btn => (
+          <button key={btn.label} className="btn btn-ghost btn-sm" onClick={() => setActiveTab?.(btn.tab)}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', borderColor: 'var(--border-1)' }}>
+            <btn.icon size={13} style={{ color: btn.color }} /> {btn.label}
+          </button>
+        ))}
       </div>
 
       {/* Stats */}
       <div className="grid-4 mb-24">
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Faol ulanishlar</span>
-            <Wifi size={16} style={{ color: 'var(--green)' }} />
-          </div>
-          <div className="stat-value">{connections.length}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Xabarlar/min</span>
-            <MessageSquare size={16} style={{ color: 'var(--blue)' }} />
-          </div>
-          <div className="stat-value">24</div>
-        </div>
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Bugungi pik</span>
-            <TrendingUp size={16} style={{ color: 'var(--yellow)' }} />
-          </div>
-          <div className="stat-value">12</div>
-        </div>
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Uptime</span>
-            <Clock size={16} style={{ color: 'var(--teal)' }} />
-          </div>
-          <div className="stat-value">99.9%</div>
-        </div>
-      </div>
-
-      {/* Channel subscriptions */}
-      <div className="grid-3 mb-24">
-        {channelStats.map(ch => (
-          <div key={ch.name} className="card">
-            <div className="card-body flex-between">
-              <span style={{ fontWeight: 700, color: 'var(--text-0)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{
-                  width: '32px', height: '32px', borderRadius: '8px',
-                  background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                  <ch.icon size={15} style={{ color: ch.color }} />
-                </div>
-                <span>#{ch.name}</span>
-              </span>
-              <span className="badge badge-primary" style={{ fontSize: '12px' }}>
-                {ch.subscribers} obunachi
-              </span>
-            </div>
+        {[
+          { label: "So'nggi harakatlar", value: data?.recent_actions ?? 0, color: 'var(--primary)', icon: Activity },
+          { label: 'Faol foydalanuvchilar', value: data?.unique_users ?? 0, color: 'var(--green)', icon: Wifi },
+          { label: 'Kanallar soni', value: channelList.length, color: 'var(--teal)', icon: MessageSquare },
+          { label: 'Eng faol kanal', value: channelList[0]?.[0] ?? '—', color: 'var(--yellow)', icon: Radio },
+        ].map(s => (
+          <div key={s.label} className="card stat-card">
+            <div className="stat-label mb-8">{s.label}</div>
+            <div className="stat-value" style={{ color: s.color, fontSize: String(s.value).length > 10 ? '14px' : undefined }}>{s.value}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid-2" style={{ gap: '24px' }}>
-        {/* Active connections */}
+      <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '16px' }}>
+        {/* Channels */}
         <div className="card">
           <div className="card-header">
-            <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Faol ulanishlar ({connections.length})</span>
+            <h3 style={{ fontWeight: 700, fontSize: '13px' }}>Resurs turlari</h3>
           </div>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th style={{ padding: '10px 14px' }}>Foydalanuvchi</th>
-                  <th style={{ padding: '10px 14px' }}>Kanal</th>
-                  <th style={{ padding: '10px 14px' }}>Davomiylik</th>
-                  <th style={{ padding: '10px 14px' }}>Xabarlar</th>
-                  <th style={{ padding: '10px 14px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {connections.map(conn => (
-                  <tr
-                    key={conn.id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => setSelectedConn(conn)}
-                  >
-                    <td style={{ padding: '10px 14px' }}>
-                      <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-0)' }}>{conn.user}</div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-4)' }}>{conn.id}</div>
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span className="badge badge-cyan" style={{ fontSize: '10px' }}>{conn.channel}</span>
-                    </td>
-                    <td style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--text-3)' }}>
-                      {getConnectedDuration(conn.connected_at)}
-                    </td>
-                    <td style={{ padding: '10px 14px', fontSize: '12px' }}>
-                      <span style={{ color: 'var(--green)' }}>↑{conn.messages_sent}</span>
-                      {' '}
-                      <span style={{ color: 'var(--blue)' }}>↓{conn.messages_received}</span>
-                    </td>
-                    <td style={{ padding: '10px 14px' }} onClick={e => e.stopPropagation()}>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        style={{ fontSize: '11px', padding: '2px 6px' }}
-                        onClick={() => setConfirmDisconnect(conn)}
-                      >
-                        Uzish
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="card-body" style={{ padding: '8px' }}>
+            {/* "Hammasi" button */}
+            <button onClick={() => setFilterChannel(null)} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '8px 10px', borderRadius: '6px', marginBottom: '2px', width: '100%',
+              border: 'none', cursor: 'pointer', textAlign: 'left',
+              background: filterChannel === null ? 'var(--primary-soft)' : 'transparent',
+            }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: filterChannel === null ? 'var(--primary)' : 'var(--text-2)' }}>Hammasi</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-4)', background: 'var(--bg-0)', padding: '1px 8px', borderRadius: '10px' }}>
+                {data?.events.length ?? 0}
+              </span>
+            </button>
+            {channelList.length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-5)', fontSize: '12px' }}>Bo'sh</div>
+            ) : channelList.map(([ch, count]) => (
+              <button key={ch} onClick={() => setFilterChannel(filterChannel === ch ? null : ch)} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px 10px', borderRadius: '6px', marginBottom: '2px', width: '100%',
+                border: 'none', cursor: 'pointer', textAlign: 'left',
+                background: filterChannel === ch ? 'var(--primary-soft)' : 'transparent',
+              }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: filterChannel === ch ? 'var(--primary)' : 'var(--text-2)' }}>{ch}</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary)', background: 'var(--primary-soft)', padding: '1px 8px', borderRadius: '10px' }}>{count}</span>
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Event log */}
-        <div className="card">
-          <div className="card-body">
-            <div className="flex-between mb-16">
-              <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-0)' }}>Event log</h3>
-              <select
-                className="input"
-                style={{ width: '160px', fontSize: '12px' }}
-                value={eventFilter}
-                onChange={e => setEventFilter(e.target.value)}
-              >
-                <option value="all">Barchasi</option>
-                <option value="tender_new">Yangi tender</option>
-                <option value="stats_update">Stats</option>
-                <option value="notification">Bildirishnoma</option>
-                <option value="activity">Faoliyat</option>
-              </select>
+        {/* Events feed */}
+        <div className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div className="card-header flex-between" style={{ flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontWeight: 700, fontSize: '13px' }}>
+                Oxirgi harakatlar
+                {filterChannel && (
+                  <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 600, marginLeft: '8px' }}>
+                    — {filterChannel}
+                    <button onClick={() => setFilterChannel(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0 0 0 4px', color: 'var(--text-4)' }}>
+                      <X size={11} />
+                    </button>
+                  </span>
+                )}
+              </h3>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '420px', overflowY: 'auto' }}>
-              {filteredEvents.map(event => (
-                <div key={event.id} style={{
-                  padding: '12px',
-                  marginBottom: '8px',
-                  background: 'var(--bg-1)',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-1)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                    <span className={`badge ${eventTypeColors[event.type]}`} style={{ fontSize: '10px' }}>
-                      {eventTypeLabels[event.type]}
-                    </span>
-                    <span style={{ fontSize: '10px', color: 'var(--text-4)', fontFamily: 'monospace' }}>
-                      {event.timestamp}
-                    </span>
-                    <span style={{ fontSize: '10px', color: 'var(--text-4)' }}>· #{event.channel}</span>
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-2)', lineHeight: 1.5 }}>
-                    {event.message}
-                  </div>
-                </div>
-              ))}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                className="input"
+                placeholder="Qidirish..."
+                value={searchAction}
+                onChange={e => setSearchAction(e.target.value)}
+                style={{ height: '28px', width: '150px', padding: '2px 10px', fontSize: '12px' }}
+              />
+              <select className="input" value={limit} onChange={e => setLimit(Number(e.target.value))}
+                style={{ height: '28px', width: '80px', padding: '2px 8px', fontSize: '12px' }}>
+                <option value={20}>20 ta</option>
+                <option value={50}>50 ta</option>
+                <option value={100}>100 ta</option>
+              </select>
+              <button className="btn btn-ghost btn-sm" title="CSV yuklash" onClick={() => exportCSV(
+                'faollik.csv',
+                ['Harakat', 'Resurs', 'Resource ID', 'Foydalanuvchi', 'IP', 'Vaqt'],
+                filteredEvents.map(ev => [ev.action, ev.resource_type, ev.resource_id ?? '', ev.user_email ?? ev.user_id ?? 'Tizim', ev.ip_address ?? '', ev.created_at])
+              )}>
+                <Download size={13} />
+              </button>
             </div>
           </div>
+
+          {filteredEvents.length === 0 ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-4)' }}>
+              <Activity size={36} style={{ opacity: 0.2, marginBottom: '12px' }} />
+              <p style={{ fontSize: '13px' }}>Hech qanday harakat topilmadi</p>
+            </div>
+          ) : (
+            <div className="table-wrap" style={{ flex: 1, overflow: 'auto' }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th style={{ padding: '10px 16px' }}>Harakat</th>
+                    <th style={{ padding: '10px 16px' }}>Resurs</th>
+                    <th style={{ padding: '10px 16px' }}>Foydalanuvchi</th>
+                    <th style={{ padding: '10px 16px' }}>Vaqt</th>
+                    <th style={{ padding: '10px 8px', width: '30px' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEvents.map((ev: ActivityEvent) => (
+                    <tr
+                      key={ev.id}
+                      onClick={() => setSelectedEvent(selectedEvent?.id === ev.id ? null : ev)}
+                      style={{
+                        borderBottom: '1px solid var(--border)',
+                        cursor: 'pointer',
+                        background: selectedEvent?.id === ev.id ? 'var(--bg-active)' : 'transparent',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => { if (selectedEvent?.id !== ev.id) (e.currentTarget.style.background = 'var(--bg-0)'); }}
+                      onMouseLeave={e => { if (selectedEvent?.id !== ev.id) (e.currentTarget.style.background = 'transparent'); }}
+                    >
+                      <td style={{ padding: '8px 16px' }}>{actionBadge(ev.action)}</td>
+                      <td style={{ padding: '8px 16px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>{ev.resource_type}</span>
+                        {ev.resource_id && <span style={{ fontSize: '10px', color: 'var(--text-5)', marginLeft: '4px' }}>#{ev.resource_id}</span>}
+                      </td>
+                      <td style={{ padding: '8px 16px' }}>
+                        {ev.user_email ? (
+                          <span style={{ fontSize: '12px', color: 'var(--text-2)' }}>{ev.user_email}</span>
+                        ) : ev.user_id ? (
+                          <span style={{ fontSize: '12px', color: 'var(--text-4)', fontFamily: 'monospace' }}>#{ev.user_id}</span>
+                        ) : (
+                          <span style={{ fontSize: '12px', color: 'var(--text-5)' }}>Tizim</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '8px 16px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-5)' }} title={ev.created_at}>{timeAgo(ev.created_at)}</span>
+                      </td>
+                      <td style={{ padding: '8px 8px' }}>
+                        <ChevronRight size={12} style={{ color: 'var(--text-5)', transform: selectedEvent?.id === ev.id ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Connection detail modal */}
-      {selectedConn && (
-        <div className="modal-overlay" onClick={() => setSelectedConn(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <User size={16} style={{ color: 'var(--primary)' }} />
-                <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Ulanish tafsiloti</span>
-              </div>
-              <button className="btn btn-sm btn-ghost btn-icon" onClick={() => setSelectedConn(null)}>
-                <X size={14} />
-              </button>
+      {/* Detail panel — slide from right */}
+      {selectedEvent && (
+        <div style={{
+          position: 'fixed', top: 0, right: 0, bottom: 0, width: '420px',
+          background: 'var(--bg-1)', borderLeft: '1px solid var(--border)',
+          boxShadow: '-4px 0 24px rgba(0,0,0,0.3)', zIndex: 100,
+          display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.2s ease',
+        }}>
+          <style>{`@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } } @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
+          {/* Header */}
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+            <div>
+              <h3 style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-0)' }}>Harakat tafsilotlari</h3>
+              <p style={{ fontSize: '11px', color: 'var(--text-4)', marginTop: '2px' }}>ID: {selectedEvent.id}</p>
             </div>
-            <div className="modal-body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', padding: '12px', background: 'var(--bg-1)', borderRadius: '10px' }}>
-                <div style={{
-                  width: '44px', height: '44px', borderRadius: '50%',
-                  background: 'var(--primary)', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', flexShrink: 0
-                }}>
-                  <User size={20} style={{ color: '#fff' }} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, color: 'var(--text-0)', fontSize: '15px' }}>{selectedConn.user}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{selectedConn.user_email}</div>
-                  <span className={`badge ${planBadge(selectedConn.user_plan)}`} style={{ marginTop: '4px', display: 'inline-block' }}>
-                    {selectedConn.user_plan.toUpperCase()}
-                  </span>
-                </div>
-              </div>
+            <button onClick={() => setSelectedEvent(null)} style={{ border: 'none', background: 'var(--bg-0)', borderRadius: '6px', padding: '6px', cursor: 'pointer', color: 'var(--text-3)' }}>
+              <X size={16} />
+            </button>
+          </div>
 
-              <div className="grid-2" style={{ gap: '10px' }}>
-                {[
-                  { label: 'ID', value: selectedConn.id },
-                  { label: 'Kanal', value: `#${selectedConn.channel}` },
-                  { label: 'Ulangan vaqt', value: selectedConn.connected_at.split(' ')[1] },
-                  { label: 'Davomiylik', value: getConnectedDuration(selectedConn.connected_at) },
-                  { label: 'Yuborilgan xabarlar', value: String(selectedConn.messages_sent) },
-                  { label: 'Qabul qilingan', value: String(selectedConn.messages_received) },
-                  { label: 'Oxirgi faollik', value: selectedConn.last_activity.split(' ')[1] },
-                  { label: 'Holat', value: 'Faol' },
-                ].map(item => (
-                  <div key={item.label} style={{ padding: '10px 12px', background: 'var(--bg-1)', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-4)', marginBottom: '3px' }}>{item.label}</div>
-                    <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-0)' }}>{item.value}</div>
-                  </div>
-                ))}
+          {/* Content */}
+          <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+            {/* Action */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-4)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Harakat</div>
+              <div>{actionBadge(selectedEvent.action)}</div>
+            </div>
+
+            {/* Resource */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-4)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Resurs</div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)' }}>{selectedEvent.resource_type}</span>
+                {selectedEvent.resource_id && <span style={{ fontSize: '12px', color: 'var(--text-4)', fontFamily: 'monospace', background: 'var(--bg-0)', padding: '2px 8px', borderRadius: '4px' }}>#{selectedEvent.resource_id}</span>}
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setSelectedConn(null)}>Yopish</button>
-              <button
-                className="btn btn-danger"
-                onClick={() => {
-                  setSelectedConn(null);
-                  setConfirmDisconnect(selectedConn);
-                }}
-              >
-                Ulanishni uzish
-              </button>
+
+            {/* User */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-4)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>
+                <User size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                Foydalanuvchi
+              </div>
+              <div style={{ background: 'var(--bg-0)', borderRadius: '8px', padding: '12px' }}>
+                {selectedEvent.user_email ? (
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-1)' }}>{selectedEvent.user_email}</div>
+                ) : (
+                  <div style={{ fontSize: '13px', color: 'var(--text-4)' }}>Noma'lum</div>
+                )}
+                {selectedEvent.user_id && (
+                  <div style={{ fontSize: '11px', color: 'var(--text-4)', marginTop: '4px', fontFamily: 'monospace' }}>User ID: {selectedEvent.user_id}</div>
+                )}
+              </div>
             </div>
+
+            {/* Time */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-4)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Vaqt</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-2)' }}>{selectedEvent.created_at}</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-4)', marginTop: '2px' }}>{timeAgo(selectedEvent.created_at)}</div>
+            </div>
+
+            {/* Details */}
+            {selectedEvent.details && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-4)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Tafsilotlar</div>
+                <pre style={{
+                  background: '#0d1117', color: '#c9d1d9', borderRadius: '8px', padding: '12px',
+                  fontSize: '12px', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                  fontFamily: '"JetBrains Mono", "Fira Code", monospace', margin: 0,
+                  maxHeight: '200px', overflowY: 'auto',
+                }}>
+                  {(() => {
+                    try { return JSON.stringify(JSON.parse(selectedEvent.details!), null, 2); } catch { return selectedEvent.details; }
+                  })()}
+                </pre>
+              </div>
+            )}
+
+            {/* IP Address */}
+            {selectedEvent.ip_address && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-4)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>
+                  <Globe size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                  IP manzil
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-2)', fontFamily: 'monospace', background: 'var(--bg-0)', padding: '8px 12px', borderRadius: '6px' }}>
+                  {selectedEvent.ip_address}
+                </div>
+              </div>
+            )}
+
+            {/* User Agent */}
+            {selectedEvent.user_agent && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-4)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>
+                  <Monitor size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                  User Agent
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-3)', background: 'var(--bg-0)', padding: '8px 12px', borderRadius: '6px', wordBreak: 'break-all' }}>
+                  {selectedEvent.user_agent}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Disconnect confirmation */}
-      {confirmDisconnect && (
-        <div className="modal-overlay" onClick={() => setConfirmDisconnect(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <AlertTriangle size={16} style={{ color: 'var(--red)' }} />
-                <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Ulanishni uzish</span>
-              </div>
-            </div>
-            <div className="modal-body">
-              <p style={{ fontSize: '14px', color: 'var(--text-1)', lineHeight: 1.6 }}>
-                <strong style={{ color: 'var(--text-0)' }}>{confirmDisconnect.user}</strong> foydalanuvchisining WebSocket ulanishini uzmoqchimisiz?
-              </p>
-              <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '8px' }}>
-                Foydalanuvchi real-time yangilanishlarni ololmaydi.
-              </p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setConfirmDisconnect(null)}>Bekor qilish</button>
-              <button className="btn btn-danger" onClick={() => disconnectUser(confirmDisconnect)}>
-                Ha, uzish
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Backdrop */}
+      {selectedEvent && (
+        <div
+          onClick={() => setSelectedEvent(null)}
+          style={{ position: 'fixed', top: 0, left: 0, right: '420px', bottom: 0, background: 'rgba(0,0,0,0.3)', zIndex: 99 }}
+        />
       )}
     </div>
   );

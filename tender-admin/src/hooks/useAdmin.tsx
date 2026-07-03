@@ -12,9 +12,16 @@ interface AdminContextType {
   addToast: (title: string, desc: string, type?: 'success' | 'error' | 'info') => void;
   loading: boolean;
   setLoading: (v: boolean) => void;
+  setActiveTab?: (tab: string) => void;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
+
+let _setActiveTab: ((tab: string) => void) | undefined;
+
+export function registerSetActiveTab(fn: (tab: string) => void) {
+  _setActiveTab = fn;
+}
 
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -27,7 +34,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AdminContext.Provider value={{ toasts, addToast, loading, setLoading }}>
+    <AdminContext.Provider value={{ toasts, addToast, loading, setLoading, setActiveTab: _setActiveTab }}>
       {children}
     </AdminContext.Provider>
   );

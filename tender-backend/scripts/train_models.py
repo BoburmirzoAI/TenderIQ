@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 async def train() -> None:
     """Train all ML models."""
     from app.database import async_session
-    from app.ml.trainer import Trainer
-    from app.repositories.tender_result_repo import TenderResultRepository
+    from app.ml.training.trainer import Trainer
+    from app.repositories.tenders.tender_result_repo import TenderResultRepository
 
     async with async_session() as session:
         result_repo = TenderResultRepository(session)

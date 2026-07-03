@@ -224,7 +224,7 @@ export default function TeamsPage() {
                 </div>
                 <div className="w-40">
                   <label className="text-sm font-medium mb-1 block">Rol</label>
-                  <Select value={memberRole} onValueChange={setMemberRole}>
+                  <Select value={memberRole} onValueChange={(v) => setMemberRole(v ?? "member")}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -274,7 +274,7 @@ export default function TeamsPage() {
                       <>
                         <Select
                           value={member.role}
-                          onValueChange={(val) => updateMemberRole(member.id, val)}
+                          onValueChange={(val) => val && updateMemberRole(member.id, val)}
                         >
                           <SelectTrigger className="w-32 h-8 text-xs">
                             <SelectValue />

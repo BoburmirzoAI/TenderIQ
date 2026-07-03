@@ -304,31 +304,43 @@ export default function TendersPage() {
         ) : (
           tenders.map((tender) => (
             <Link key={tender.id} href={`/tenders/${tender.id}`}>
-              <Card className="transition-colors hover:bg-muted/50 cursor-pointer">
-                <CardContent className="p-4">
+              <Card className="transition-all hover:shadow-md hover:border-blue-200 cursor-pointer group">
+                <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <h3 className="font-medium leading-tight line-clamp-2">
+                    <div className="space-y-2 min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={getStatusColor(tender.status)} className="text-[10px]">
+                          {getStatusLabel(tender.status)}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {getCategoryLabel(tender.category)}
+                        </Badge>
+                      </div>
+                      <h3 className="font-semibold leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
                         {tender.title}
                       </h3>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <span>{tender.organization ?? "—"}</span>
-                        <span>&bull;</span>
-                        <span>{getCategoryLabel(tender.category)}</span>
-                        <span>&bull;</span>
-                        <span>{getRegionLabel(tender.region)}</span>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+                          {tender.organization ?? "—"}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+                          {getRegionLabel(tender.region)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+                          Muddat: {formatDate(tender.deadline)}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <span className="font-semibold text-sm">
+                    <div className="text-right shrink-0">
+                      <p className="text-lg font-bold text-blue-600">
                         {formatAmount(tender.amount)}
-                      </span>
-                      <Badge variant={getStatusColor(tender.status)}>
-                        {getStatusLabel(tender.status)}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        Muddat: {formatDate(tender.deadline)}
-                      </span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {tender.currency || "UZS"}
+                      </p>
                     </div>
                   </div>
                 </CardContent>

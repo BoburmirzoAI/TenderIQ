@@ -1,148 +1,222 @@
 import { useState } from 'react';
-import { FileText, FileSpreadsheet, BarChart3, Download, Calendar, X, Eye } from 'lucide-react';
+import { FileText, FileSpreadsheet, BarChart3, Download, Calendar, Trophy, Users, MapPin, Target, CreditCard, RefreshCw, Eye, X, TrendingUp, DollarSign, Activity } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAdmin } from '../hooks/useAdmin';
+import { reportsApi, analyticsApi, type ReportData } from '../api/admin';
+
+const exportCSV = (filename: string, headers: string[], rows: any[][]) => {
+  const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+};
+
+const fmtAmount = (n: number) => {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)} mlrd`;
+  if (n >= 1e6) return `${Math.round(n / 1e6)} mln`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(0)} ming`;
+  return String(n);
+};
 
 interface ReportCard {
-  id: string;
-  title: string;
-  description: string;
-  icon: typeof FileText;
-  color: string;
-  bg: string;
-  formats: string[];
-}
-
-interface RecentExport {
-  id: number;
-  filename: string;
-  format: 'PDF' | 'Excel' | 'CSV';
-  generatedBy: string;
-  date: string;
-  size: string;
+  id: string; title: string; description: string; icon: typeof FileText;
+  color: string; bg: string;
 }
 
 const reportCards: ReportCard[] = [
-  {
-    id: 'tenders', title: 'Tender hisoboti', description: 'Barcha tenderlar ma\'lumotlarini eksport qiling — filtrlash, holat va summalar bilan',
-    icon: FileText, color: 'var(--blue)', bg: 'var(--blue-soft)', formats: ['PDF', 'Excel', 'CSV'],
-  },
-  {
-    id: 'applications', title: 'Arizalar hisoboti', description: 'Yuborilgan arizalar, ularning holatlari va natijalari haqida hisobot',
-    icon: FileSpreadsheet, color: 'var(--green)', bg: 'var(--green-soft)', formats: ['PDF', 'Excel', 'CSV'],
-  },
-  {
-    id: 'analytics', title: 'Analitika hisoboti', description: 'Bozor tahlili, trendlar va bashoratlar haqida batafsil hisobot',
-    icon: BarChart3, color: 'var(--purple)', bg: 'var(--purple-soft)', formats: ['PDF', 'Excel'],
-  },
+  { id: 'summary', title: 'Umumiy hisobot', description: "Tenderlar, foydalanuvchilar, daromad, manbalar — barchasi bitta hisobotda", icon: BarChart3, color: 'var(--primary)', bg: 'rgba(99,102,241,0.1)' },
+  { id: 'tenders', title: 'Tender hisoboti', description: "Barcha tenderlar ro'yxati — nomi, tashkilot, summa, holat, region, sana", icon: FileText, color: 'var(--teal)', bg: 'rgba(20,184,166,0.1)' },
+  { id: 'regions', title: 'Regionlar hisoboti', description: "Tender taqsimoti viloyatlar bo'yicha — soni va foizi", icon: MapPin, color: 'var(--green)', bg: 'rgba(16,185,129,0.1)' },
+  { id: 'categories', title: 'Kategoriyalar hisoboti', description: "Tender taqsimoti kategoriyalar bo'yicha — goods, works, services", icon: Target, color: 'var(--yellow)', bg: 'rgba(245,158,11,0.1)' },
+  { id: 'applications', title: 'Arizalar hisoboti', description: "Yuborilgan arizalar, bosqichlari, natijalari va bid summalari", icon: FileSpreadsheet, color: 'var(--blue)', bg: 'rgba(59,130,246,0.1)' },
+  { id: 'winloss', title: 'Win/Loss hisoboti', description: "G'alaba va mag'lubiyat natijalari — g'olib, summa, shartnoma raqami", icon: Trophy, color: 'var(--purple)', bg: 'rgba(139,92,246,0.1)' },
+  { id: 'users', title: 'Foydalanuvchilar hisoboti', description: "Barcha foydalanuvchilar ro'yxati, obuna holati, ro'yxatdan o'tish sanasi", icon: Users, color: 'var(--red)', bg: 'rgba(239,68,68,0.1)' },
+  { id: 'finance', title: 'Moliya hisoboti', description: "To'lovlar, obunalar, daromad — moliyaviy ko'rsatkichlar", icon: CreditCard, color: 'var(--green)', bg: 'rgba(16,185,129,0.1)' },
 ];
-
-const recentExports: RecentExport[] = [
-  { id: 1, filename: 'tenders_june_2026.xlsx', format: 'Excel', generatedBy: 'Bobur S.', date: '2026-06-17 14:30', size: '2.4 MB' },
-  { id: 2, filename: 'analytics_q2_2026.pdf', format: 'PDF', generatedBy: 'Jasur K.', date: '2026-06-16 10:15', size: '5.1 MB' },
-  { id: 3, filename: 'applications_export.csv', format: 'CSV', generatedBy: 'Dilnoza R.', date: '2026-06-15 16:45', size: '1.2 MB' },
-  { id: 4, filename: 'tenders_full_2026.pdf', format: 'PDF', generatedBy: 'Bobur S.', date: '2026-06-14 09:00', size: '8.7 MB' },
-  { id: 5, filename: 'market_analysis.xlsx', format: 'Excel', generatedBy: 'Aziz T.', date: '2026-06-12 13:20', size: '3.6 MB' },
-];
-
-const mockReportPreview: Record<string, { title: string; stats: { label: string; value: string }[]; summary: string }> = {
-  tenders: {
-    title: 'Tender Hisoboti — Iyun 2026',
-    stats: [
-      { label: 'Jami tenderlar', value: '1,248' },
-      { label: 'Faol tenderlar', value: '342' },
-      { label: 'Yopilgan tenderlar', value: '876' },
-      { label: 'Umumiy summa', value: '2.4 trln so\'m' },
-      { label: 'O\'rtacha summa', value: '1.9 mlrd so\'m' },
-    ],
-    summary: 'Iyun oyida tender faolligi o\'tgan oyga nisbatan 12% oshdi. IT va qurilish sektorlari eng ko\'p tender e\'lon qildi. Toshkent shahri 34% ulushni egallaydi.',
-  },
-  applications: {
-    title: 'Arizalar Hisoboti — Iyun 2026',
-    stats: [
-      { label: 'Jami arizalar', value: '4,521' },
-      { label: 'Qabul qilingan', value: '1,234' },
-      { label: 'Rad etilgan', value: '892' },
-      { label: 'Kutilmoqda', value: '2,395' },
-      { label: 'G\'alaba %', value: '27.3%' },
-    ],
-    summary: 'Ariza berish faolligi o\'tgan oyga nisbatan 8% oshdi. Eng yuqori qabul darajasi IT sektorida (38%) kuzatildi.',
-  },
-  analytics: {
-    title: 'Analitika Hisoboti — Q2 2026',
-    stats: [
-      { label: 'Bozor hajmi', value: '45.2 trln so\'m' },
-      { label: 'O\'sish sur\'ati', value: '+15.3%' },
-      { label: 'Faol kompaniyalar', value: '2,847' },
-      { label: 'Yangi tenderlar/oy', value: '1,248' },
-      { label: 'Raqobat indeksi', value: '4.2' },
-    ],
-    summary: 'Q2 2026 tender bozori barqaror o\'sishni ko\'rsatdi. IT infratuzilma (+32%) va tibbiyot (+24%) sektorlari lider hisoblanadi.',
-  },
-};
-
-const formatBadge = (f: string) => {
-  const cls = f === 'PDF' ? 'badge-red' : f === 'Excel' ? 'badge-green' : 'badge-blue';
-  return <span className={`badge ${cls}`}>{f}</span>;
-};
-
-const tdStyle: React.CSSProperties = { padding: '12px 16px', verticalAlign: 'middle' };
 
 export default function Reports() {
-  const { addToast } = useAdmin();
-  const [selectedFormats, setSelectedFormats] = useState<Record<string, string>>({
-    tenders: 'PDF', applications: 'Excel', analytics: 'PDF',
-  });
-  const [dateFrom, setDateFrom] = useState('2026-06-01');
-  const [dateTo, setDateTo] = useState('2026-06-17');
-  const [generating, setGenerating] = useState<string | null>(null);
-  const [previewReport, setPreviewReport] = useState<string | null>(null);
+  const { addToast, setActiveTab } = useAdmin();
+  const today = new Date();
+  const monthAgo = new Date(today); monthAgo.setDate(today.getDate() - 30);
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
 
-  const generate = (reportId: string, title: string) => {
-    setGenerating(reportId);
-    addToast('Yaratilmoqda', `${title} hisoboti tayyorlanmoqda...`, 'info');
-    setTimeout(() => {
-      setGenerating(null);
-      addToast('Tayyor', `${title} hisoboti muvaffaqiyatli yaratildi`, 'success');
-    }, 2000);
+  const [dateFrom, setDateFrom] = useState(fmt(monthAgo));
+  const [dateTo, setDateTo] = useState(fmt(today));
+  const [generating, setGenerating] = useState<string | null>(null);
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const setQuickRange = (days: number) => {
+    const to = new Date();
+    const from = new Date(); from.setDate(to.getDate() - days);
+    setDateFrom(fmt(from));
+    setDateTo(fmt(to));
   };
 
-  const preview = mockReportPreview[previewReport || ''];
+  const generateReport = async (reportId: string) => {
+    setGenerating(reportId);
+    try {
+      if (reportId === 'summary' || reportId === 'finance') {
+        const data = await reportsApi.generate(reportId, dateFrom, dateTo);
+        setReportData(data);
+        setPreviewOpen(true);
+        addToast('Tayyor', 'Hisobot yaratildi — yuklab olishingiz mumkin', 'success');
+      } else if (reportId === 'tenders') {
+        const [overview, regions, cats, sources] = await Promise.all([
+          reportsApi.generate('summary', dateFrom, dateTo),
+          analyticsApi.regionBreakdown(),
+          analyticsApi.categoryBreakdown(),
+          analyticsApi.sourceBreakdown(),
+        ]);
+        const rows: any[][] = [];
+        rows.push(['=== TENDER HISOBOTI ===', '', '', '', '']);
+        rows.push([`Davr: ${dateFrom} — ${dateTo}`, '', '', '', '']);
+        rows.push(['Jami tenderlar', overview.total_tenders, '', '', '']);
+        rows.push(['', '', '', '', '']);
+        rows.push(['=== Manba bo\'yicha ===', '', '', '', '']);
+        overview.tender_by_source.forEach(s => rows.push([s.label, s.value, '', '', '']));
+        rows.push(['', '', '', '', '']);
+        rows.push(['=== Region bo\'yicha ===', '', '', '', '']);
+        regions.forEach(r => rows.push([r.region, r.count, '', '', '']));
+        rows.push(['', '', '', '', '']);
+        rows.push(['=== Kategoriya bo\'yicha ===', '', '', '', '']);
+        cats.forEach(c => rows.push([c.category, c.count, '', '', '']));
+        exportCSV(`tender_hisobot_${dateFrom}_${dateTo}.csv`, ['Nomi', 'Qiymati', '', '', ''], rows);
+        addToast('Yuklandi', 'Tender hisoboti CSV yuklab olindi', 'success');
+      } else if (reportId === 'regions') {
+        const regions = await analyticsApi.regionBreakdown();
+        const total = regions.reduce((s, r) => s + r.count, 0);
+        exportCSV(`regionlar_${dateFrom}_${dateTo}.csv`,
+          ['Viloyat', 'Tenderlar soni', 'Foiz (%)'],
+          regions.map(r => [r.region, r.count, total > 0 ? `${((r.count / total) * 100).toFixed(1)}%` : '0%'])
+        );
+        addToast('Yuklandi', 'Regionlar hisoboti yuklab olindi', 'success');
+      } else if (reportId === 'categories') {
+        const cats = await analyticsApi.categoryBreakdown();
+        const total = cats.reduce((s, c) => s + c.count, 0);
+        exportCSV(`kategoriyalar_${dateFrom}_${dateTo}.csv`,
+          ['Kategoriya', 'Tenderlar soni', 'Foiz (%)'],
+          cats.map(c => [c.category, c.count, total > 0 ? `${((c.count / total) * 100).toFixed(1)}%` : '0%'])
+        );
+        addToast('Yuklandi', 'Kategoriyalar hisoboti yuklab olindi', 'success');
+      } else if (reportId === 'applications') {
+        const apps = await analyticsApi.applicationsSummary();
+        const rows: any[][] = [];
+        rows.push(['=== ARIZALAR HISOBOTI ===', '', '']);
+        rows.push([`Davr: ${dateFrom} — ${dateTo}`, '', '']);
+        rows.push(['', '', '']);
+        rows.push(['=== Bosqich bo\'yicha ===', '', '']);
+        (apps.by_stage || []).forEach((s: any) => rows.push([s.stage, s.count, '']));
+        rows.push(['', '', '']);
+        rows.push(['=== Natija bo\'yicha ===', '', '']);
+        (apps.by_result || []).forEach((r: any) => rows.push([r.result, r.count, '']));
+        rows.push(['', '', '']);
+        rows.push(['Umumiy bid summasi', apps.total_bid_amount, '']);
+        rows.push(['Yutilgan summa', apps.won_amount, '']);
+        rows.push(["O'rtacha yutish ehtimoli", `${apps.avg_win_probability}%`, '']);
+        exportCSV(`arizalar_${dateFrom}_${dateTo}.csv`, ['Ko\'rsatkich', 'Qiymati', ''], rows);
+        addToast('Yuklandi', 'Arizalar hisoboti yuklab olindi', 'success');
+      } else if (reportId === 'winloss') {
+        const { winLossApi } = await import('../api/admin');
+        const [list, stats] = await Promise.all([winLossApi.list(500), winLossApi.stats()]);
+        const rows: any[][] = [];
+        rows.push(['=== WIN/LOSS HISOBOTI ===', '', '', '', '', '']);
+        rows.push(['Jami natijalar', stats.total_results, '', '', '', '']);
+        rows.push(['Umumiy summa', stats.total_won_amount, '', '', '', '']);
+        rows.push(["O'rtacha g'alaba summasi", stats.avg_winning_amount, '', '', '', '']);
+        rows.push(['', '', '', '', '', '']);
+        rows.push(['=== Batafsil ro\'yxat ===', '', '', '', '', '']);
+        list.forEach(r => rows.push([r.tender_title || `#${r.tender_id}`, r.winner_name, r.winner_stir || '', r.winning_amount || 0, r.currency, r.created_at]));
+        exportCSV(`winloss_${dateFrom}_${dateTo}.csv`, ['Tender', "G'olib", 'STIR', 'Summa', 'Valyuta', 'Sana'], rows);
+        addToast('Yuklandi', 'Win/Loss hisoboti yuklab olindi', 'success');
+      } else if (reportId === 'users') {
+        const { usersApi } = await import('../api/admin');
+        const resp = await usersApi.list({ page: 1, per_page: 500 });
+        exportCSV(`foydalanuvchilar_${dateFrom}_${dateTo}.csv`,
+          ['ID', 'Ism', 'Email', 'Admin', 'Faol', "Ro'yxatdan o'tgan"],
+          resp.data.map(u => [u.id, u.full_name || '', u.email, u.is_admin ? 'Ha' : 'Yo\'q', u.is_active ? 'Ha' : 'Yo\'q', u.created_at])
+        );
+        addToast('Yuklandi', 'Foydalanuvchilar hisoboti yuklab olindi', 'success');
+      }
+    } catch (err) {
+      addToast('Xatolik', 'Hisobot yaratishda xato', 'error');
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const downloadPreview = () => {
+    if (!reportData) return;
+    const rows: string[][] = [];
+    rows.push(['=== UMUMIY HISOBOT ===', '']);
+    rows.push([`Davr: ${reportData.period}`, '']);
+    rows.push(['Jami tenderlar', String(reportData.total_tenders)]);
+    rows.push(['Yangi foydalanuvchilar', String(reportData.total_users)]);
+    rows.push(['Umumiy daromad', String(reportData.total_revenue)]);
+    rows.push(['', '']);
+    rows.push(["=== Manba bo'yicha ===", '']);
+    reportData.tender_by_source.forEach(s => rows.push([s.label, String(s.value)]));
+    rows.push(['', '']);
+    rows.push(["=== Daromad plan bo'yicha ===", '']);
+    reportData.revenue_by_plan.forEach(p => rows.push([p.label, String(p.value)]));
+    rows.push(['', '']);
+    rows.push(['=== Kunlik foydalanuvchilar ===', '']);
+    reportData.new_users.forEach(u => rows.push([u.label, String(u.value)]));
+    exportCSV(`hisobot_${reportData.period.replace(/\s/g, '_')}.csv`, ["Ko'rsatkich", 'Qiymati'], rows);
+    addToast('Yuklandi', 'Hisobot CSV yuklab olindi', 'success');
+    setPreviewOpen(false);
+  };
 
   return (
     <div className="page-container">
       <div className="flex-between mb-24">
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)' }}>Hisobotlar</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Hisobotlarni yarating va eksport qiling</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 800 }}>Hisobotlar</h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Loyihaning barcha hisobotlarini yarating va yuklab oling</p>
         </div>
       </div>
 
-      {/* Date Range Picker */}
-      <div className="card mb-24" style={{ border: '1px solid var(--border)' }}>
-        <div className="card-body" style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* Quick Actions */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        {[
+          { label: 'Analitika', tab: 'analytics', icon: BarChart3, color: 'var(--primary)' },
+          { label: 'Tenderlar', tab: 'tenders', icon: Target, color: 'var(--teal)' },
+          { label: 'Win/Loss', tab: 'journal', icon: Activity, color: 'var(--purple)' },
+          { label: 'Raqobatchilar', tab: 'competitors', icon: TrendingUp, color: 'var(--yellow)' },
+          { label: 'Narx strategiya', tab: 'pricing', icon: DollarSign, color: 'var(--red)' },
+          { label: 'Moliya', tab: 'financials', icon: CreditCard, color: 'var(--green)' },
+        ].map(btn => (
+          <button key={btn.label} className="btn btn-ghost btn-sm" onClick={() => setActiveTab?.(btn.tab)}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', borderColor: 'var(--border-1)' }}>
+            <btn.icon size={13} style={{ color: btn.color }} /> {btn.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Date Range + Quick buttons */}
+      <div className="card mb-24">
+        <div className="card-body" style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Calendar size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-0)' }}>Sana oralig'i:</span>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-3)' }}>Dan:</span>
+            <input className="input" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ width: '155px' }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>Dan:</label>
-            <input
-              className="input"
-              type="date"
-              value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-              style={{ width: '170px', padding: '8px 12px' }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-3)' }}>Gacha:</span>
+            <input className="input" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ width: '155px' }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>Gacha:</label>
-            <input
-              className="input"
-              type="date"
-              value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-              style={{ width: '170px', padding: '8px 12px' }}
-            />
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {[
+              { label: '7 kun', days: 7 },
+              { label: '30 kun', days: 30 },
+              { label: '90 kun', days: 90 },
+              { label: '1 yil', days: 365 },
+            ].map(q => (
+              <button key={q.label} className="btn btn-ghost btn-sm" style={{ fontSize: '11px' }} onClick={() => setQuickRange(q.days)}>
+                {q.label}
+              </button>
+            ))}
           </div>
           <div style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-4)', padding: '6px 12px', background: 'var(--bg-1)', borderRadius: '6px', border: '1px solid var(--border)' }}>
             {dateFrom} — {dateTo}
@@ -151,167 +225,80 @@ export default function Reports() {
       </div>
 
       {/* Report Cards */}
-      <div className="grid-3 mb-24">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
         {reportCards.map(report => (
-          <div key={report.id} className="card" style={{ border: '1px solid var(--border)' }}>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '18px', padding: '20px' }}>
-              {/* Icon + Title */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: report.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid var(--border)' }}>
-                  <report.icon size={22} style={{ color: report.color }} />
+          <div key={report.id} className="card">
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: report.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <report.icon size={20} style={{ color: report.color }} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <strong style={{ fontSize: '15px', color: 'var(--text-0)', display: 'block', marginBottom: '6px' }}>{report.title}</strong>
-                  <p style={{ fontSize: '12px', color: 'var(--text-4)', margin: 0, lineHeight: '1.5' }}>{report.description}</p>
+                  <strong style={{ fontSize: '14px', display: 'block', marginBottom: '4px' }}>{report.title}</strong>
+                  <p style={{ fontSize: '11px', color: 'var(--text-4)', margin: 0, lineHeight: '1.4' }}>{report.description}</p>
                 </div>
               </div>
-
-              <div className="divider" />
-
-              {/* Format select */}
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px', color: 'var(--text-2)' }}>Eksport formati</label>
-                <select
-                  className="input select"
-                  value={selectedFormats[report.id]}
-                  onChange={e => setSelectedFormats(p => ({ ...p, [report.id]: e.target.value }))}
-                  style={{ padding: '8px 12px' }}
-                >
-                  {report.formats.map(f => <option key={f} value={f}>{f}</option>)}
-                </select>
-              </div>
-
-              {/* Buttons */}
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  className="btn btn-primary"
-                  style={{ flex: 1 }}
-                  disabled={generating === report.id}
-                  onClick={() => generate(report.id, report.title)}
-                >
-                  {generating === report.id ? (
-                    <><span className="animate-spin" style={{ display: 'inline-block' }}>&#9696;</span> Yaratilmoqda...</>
-                  ) : (
-                    <><Download size={14} /> Yaratish</>
-                  )}
-                </button>
-                <button
-                  className="btn btn-ghost"
-                  title="Ko'rish"
-                  onClick={() => setPreviewReport(report.id)}
-                >
-                  <Eye size={14} />
-                </button>
-              </div>
+              <button className="btn btn-primary btn-sm" style={{ width: '100%' }} disabled={!!generating} onClick={() => generateReport(report.id)}>
+                {generating === report.id ? <RefreshCw size={13} className="animate-spin" /> : <Download size={13} />}
+                {generating === report.id ? 'Yaratilmoqda...' : 'Yaratish va yuklash'}
+              </button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Recent Exports Table */}
-      <div className="card" style={{ border: '1px solid var(--border)' }}>
-        <div className="card-header">
-          <h3 style={{ fontWeight: 700, color: 'var(--text-0)' }}>Oxirgi eksportlar</h3>
-        </div>
-        <div className="table-wrap">
-          <table className="table" style={{ tableLayout: 'fixed', width: '100%' }}>
-            <colgroup>
-              <col style={{ width: '240px' }} />
-              <col style={{ width: '90px' }} />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '170px' }} />
-              <col style={{ width: '90px' }} />
-              <col style={{ width: '200px' }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th style={tdStyle}>Fayl nomi</th>
-                <th style={tdStyle}>Format</th>
-                <th style={tdStyle}>Yaratuvchi</th>
-                <th style={tdStyle}>Sana</th>
-                <th style={tdStyle}>Hajmi</th>
-                <th style={tdStyle}>Amallar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentExports.map(exp => (
-                <tr key={exp.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                      <FileText size={14} style={{ color: 'var(--text-4)', flexShrink: 0 }} />
-                      <strong style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{exp.filename}</strong>
-                    </div>
-                  </td>
-                  <td style={tdStyle}>{formatBadge(exp.format)}</td>
-                  <td style={{ ...tdStyle, color: 'var(--text-3)', fontSize: '13px' }}>{exp.generatedBy}</td>
-                  <td style={{ ...tdStyle, fontSize: '12px', color: 'var(--text-4)' }}>{exp.date}</td>
-                  <td style={{ ...tdStyle, fontSize: '13px', fontFamily: 'monospace' }}>{exp.size}</td>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button
-                        className="btn btn-sm btn-primary"
-                        onClick={() => addToast('Yuklab olish', `${exp.filename} yuklab olinmoqda`, 'info')}
-                      >
-                        <Download size={13} /> Yuklab olish
-                      </button>
-                      <button
-                        className="btn btn-sm btn-ghost"
-                        onClick={() => {
-                          const key = exp.filename.includes('tender') ? 'tenders' : exp.filename.includes('analytic') || exp.filename.includes('market') ? 'analytics' : 'applications';
-                          setPreviewReport(key);
-                        }}
-                      >
-                        <Eye size={13} /> Ko'rish
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Preview Modal */}
-      {previewReport && preview && (
-        <div className="modal-overlay" onClick={() => setPreviewReport(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
+      {/* Preview Modal for summary/finance reports */}
+      {previewOpen && reportData && (
+        <div className="modal-overlay" onClick={() => setPreviewOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px' }}>
             <div className="modal-header">
-              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-0)' }}>{preview.title}</h2>
-              <button className="btn btn-sm btn-ghost" onClick={() => setPreviewReport(null)}><X size={14} /></button>
+              <h2 style={{ fontSize: '16px', fontWeight: 700 }}>Hisobot — {reportData.period}</h2>
+              <button className="btn-icon" onClick={() => setPreviewOpen(false)}><X size={18} /></button>
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Stats Grid */}
-              <div>
-                <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-0)', marginBottom: '12px' }}>Asosiy ko'rsatkichlar</h4>
-                <div className="grid-2" style={{ gap: '10px' }}>
-                  {preview.stats.map((s, i) => (
-                    <div key={i} style={{ padding: '14px', background: 'var(--bg-1)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text-4)', marginBottom: '4px' }}>{s.label}</div>
-                      <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-0)' }}>{s.value}</div>
-                    </div>
-                  ))}
+              <div className="grid-3" style={{ gap: '10px' }}>
+                {[
+                  { label: 'Jami tenderlar', value: reportData.total_tenders, color: 'var(--primary)' },
+                  { label: 'Yangi foydalanuvchilar', value: reportData.total_users, color: 'var(--green)' },
+                  { label: 'Umumiy daromad', value: fmtAmount(reportData.total_revenue), color: 'var(--teal)' },
+                ].map(s => (
+                  <div key={s.label} style={{ padding: '14px', background: 'var(--bg-1)', borderRadius: '8px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-4)', marginBottom: '4px' }}>{s.label}</div>
+                    <div style={{ fontSize: '22px', fontWeight: 800, color: s.color }}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+              {reportData.tender_by_source.length > 0 && (
+                <div>
+                  <h4 style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px' }}>Tenderlar manba bo'yicha</h4>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={reportData.tender_by_source}>
+                      <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Bar dataKey="value" name="Tenderlar" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-              </div>
-
-              {/* Summary */}
-              <div>
-                <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-0)', marginBottom: '10px' }}>Xulosa</h4>
-                <div style={{ background: 'var(--bg-1)', borderRadius: '8px', padding: '16px', fontSize: '13px', color: 'var(--text-2)', lineHeight: '1.7', border: '1px solid var(--border)' }}>
-                  {preview.summary}
+              )}
+              {reportData.new_users.length > 0 && (
+                <div>
+                  <h4 style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px' }}>Yangi foydalanuvchilar (kunlik)</h4>
+                  <ResponsiveContainer width="100%" height={150}>
+                    <BarChart data={reportData.new_users}>
+                      <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Bar dataKey="value" name="Foydalanuvchilar" fill="var(--green)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-              </div>
-
-              {/* Period */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-4)', padding: '10px 14px', background: 'var(--bg-1)', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                <Calendar size={14} />
-                Sana oralig'i: <strong>{dateFrom}</strong> — <strong>{dateTo}</strong>
-              </div>
+              )}
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setPreviewReport(null)}>Yopish</button>
-              <button className="btn btn-primary" onClick={() => { addToast('Yuklab olish', 'Hisobot yuklab olinmoqda', 'info'); setPreviewReport(null); }}>
-                <Download size={14} /> Yuklab olish
+              <button className="btn btn-ghost" onClick={() => setPreviewOpen(false)}>Yopish</button>
+              <button className="btn btn-primary" onClick={downloadPreview}>
+                <Download size={14} /> CSV yuklab olish
               </button>
             </div>
           </div>

@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Generic, Optional, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 T = TypeVar("T")
 
@@ -40,8 +40,8 @@ class ErrorResponse(BaseModel):
 class PaginationParams(BaseModel):
     """Query parameters for paginated endpoints."""
 
-    page: int = 1
-    per_page: int = 20
+    page: int = Field(1, ge=1)
+    per_page: int = Field(20, ge=1, le=100)
     sort_by: str = "created_at"
     sort_order: str = "desc"
 

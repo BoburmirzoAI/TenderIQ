@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 async def scrape_historical() -> None:
     """Scrape last 6 months of tenders from all sources."""
-    from app.scraper.uzex_scraper import UzexScraper
-    from app.scraper.mc_scraper import MCScraper
+    from app.scraper.sources.uzex_scraper import UzexScraper
+    from app.scraper.sources.mc_scraper import MCScraper
 
     logger.info("Starting historical scrape...")
 

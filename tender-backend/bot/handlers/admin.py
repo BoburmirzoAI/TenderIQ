@@ -9,9 +9,9 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import func, select
 
 from app.database import async_session
-from app.models.bot_group import BotGroup
-from app.models.tender import Tender
-from app.models.user import User
+from app.models.communication.bot_group import BotGroup
+from app.models.tenders.tender import Tender
+from app.models.auth.user import User
 from bot.keyboards.reply import main_menu_kb
 
 router = Router()

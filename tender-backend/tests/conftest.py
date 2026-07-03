@@ -20,6 +20,10 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 TestSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+# Patch async_session used by AuthMiddleware to use test DB
+import app.database as _app_database
+_app_database.async_session = TestSessionLocal
+
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -65,7 +69,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 @pytest.fixture
 async def test_user(db_session: AsyncSession):
     """Create a test user."""
-    from app.models.user import User
+    from app.models.auth.user import User
 
     user = User(
         email="test@example.com",
@@ -83,7 +87,7 @@ async def test_user(db_session: AsyncSession):
 @pytest.fixture
 async def test_admin(db_session: AsyncSession):
     """Create a test admin user."""
-    from app.models.user import User
+    from app.models.auth.user import User
 
     admin = User(
         email="admin@example.com",
@@ -115,7 +119,7 @@ def admin_headers(test_admin):
 @pytest.fixture
 async def test_company(db_session: AsyncSession, test_user):
     """Create a test company linked to test user."""
-    from app.models.company import Company
+    from app.models.companies.company import Company
 
     company = Company(
         user_id=test_user.id,
@@ -137,7 +141,7 @@ async def test_company(db_session: AsyncSession, test_user):
 @pytest.fixture
 async def test_tenders(db_session: AsyncSession):
     """Create 10 test tenders with various categories and regions."""
-    from app.models.tender import Tender
+    from app.models.tenders.tender import Tender
 
     tenders_data = [
         {
@@ -177,7 +181,7 @@ async def test_tenders(db_session: AsyncSession):
 @pytest.fixture
 async def test_subscription(db_session: AsyncSession, test_user):
     """Create a test subscription."""
-    from app.models.subscription import Subscription
+    from app.models.finance.subscription import Subscription
 
     sub = Subscription(
         user_id=test_user.id,

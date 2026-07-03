@@ -1,226 +1,303 @@
-import { useState } from 'react';
-import { Play, RefreshCw, Search, Edit3, Trash2, CheckSquare, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Trash2, RefreshCw, ExternalLink, Download, Plus, X } from 'lucide-react';
 import { useAdmin } from '../hooks/useAdmin';
-
-const scrapers = [
-  { id: 'uzex', name: 'UZEX', lastRun: '2026-06-17 14:20', lastCount: 45, status: 'idle' as const },
-  { id: 'mc', name: 'MC.uz', lastRun: '2026-06-17 14:05', lastCount: 28, status: 'idle' as const },
-  { id: 'mygov', name: 'MyGov', lastRun: '2026-06-17 13:45', lastCount: 67, status: 'idle' as const },
-];
+import { tendersApi, type AdminTender } from '../api/admin';
 
 const statusColors: Record<string, string> = {
   active: 'badge-green', closed: 'badge-red', cancelled: 'badge-yellow', awarded: 'badge-purple',
 };
-
 const sourceColors: Record<string, string> = {
   uzex: 'badge-primary', mc: 'badge-teal', mygov: 'badge-cyan',
 };
 
-const mockTenders = [
-  { id: 1, title: 'IT uskunalarni yetkazib berish', source: 'uzex', category: 'IT', region: 'Toshkent', amount: 450000000, status: 'active', deadline: '2026-06-25', published: '2026-06-15' },
-  { id: 2, title: 'Binoni ta\'mirlash ishlari', source: 'mc', category: 'Qurilish', region: 'Samarqand', amount: 1200000000, status: 'active', deadline: '2026-06-30', published: '2026-06-14' },
-  { id: 3, title: 'Dori vositalari sotib olish', source: 'mygov', category: 'Tibbiyot', region: 'Buxoro', amount: 320000000, status: 'closed', deadline: '2026-06-10', published: '2026-06-01' },
-  { id: 4, title: 'Transport xizmatlari', source: 'uzex', category: 'Transport', region: 'Farg\'ona', amount: 89000000, status: 'active', deadline: '2026-07-05', published: '2026-06-16' },
-  { id: 5, title: 'Maktab inventari yetkazish', source: 'mc', category: 'Ta\'lim', region: 'Andijon', amount: 156000000, status: 'awarded', deadline: '2026-06-08', published: '2026-05-25' },
-  { id: 6, title: 'Yo\'l ta\'mirlash loyihasi', source: 'mygov', category: 'Qurilish', region: 'Navoiy', amount: 3500000000, status: 'active', deadline: '2026-07-15', published: '2026-06-17' },
-  { id: 7, title: 'Server va tarmoq jihozlari', source: 'uzex', category: 'IT', region: 'Toshkent', amount: 780000000, status: 'cancelled', deadline: '2026-06-20', published: '2026-06-10' },
-];
-
-const fmtAmount = (n: number) => {
-  if (n >= 1e9) return `${(n / 1e9).toFixed(1)} mlrd`;
-  if (n >= 1e6) return `${(n / 1e6).toFixed(0)} mln`;
+function fmt(n?: number) {
+  if (!n) return '—';
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)} mlrd`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} mln`;
   return n.toLocaleString();
-};
-
-const stats = {
-  total: mockTenders.length,
-  active: mockTenders.filter(t => t.status === 'active').length,
-  closed: mockTenders.filter(t => t.status === 'closed').length,
-  cancelled: mockTenders.filter(t => t.status === 'cancelled').length,
-  awarded: mockTenders.filter(t => t.status === 'awarded').length,
-};
+}
 
 export default function TendersPage() {
   const { addToast } = useAdmin();
-  const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterSource, setFilterSource] = useState('all');
-  const [scraperStates, setScraperStates] = useState<Record<string, string>>({});
-  const [editTender, setEditTender] = useState<typeof mockTenders[0] | null>(null);
+  const [tenders, setTenders] = useState<AdminTender[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
-  const triggerScraper = (id: string) => {
-    setScraperStates(p => ({ ...p, [id]: 'running' }));
-    addToast('Scraper', `${id.toUpperCase()} ishga tushirildi`, 'info');
-    setTimeout(() => {
-      setScraperStates(p => ({ ...p, [id]: 'idle' }));
-      addToast('Tayyor', `${id.toUpperCase()} scraper tugadi`, 'success');
-    }, 3000);
-  };
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterSource, setFilterSource] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ title: '', organization: '', category: '', region: '', amount: '', currency: 'UZS', deadline: '', description: '', url: '' });
+  const [creating, setCreating] = useState(false);
+  const perPage = 20;
 
-  const filtered = mockTenders.filter(t => {
-    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterStatus !== 'all' && t.status !== filterStatus) return false;
-    if (filterSource !== 'all' && t.source !== filterSource) return false;
-    return true;
+  const fetchTenders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, string | number> = { page, per_page: perPage };
+      if (search) params.search = search;
+      if (filterStatus) params.status = filterStatus;
+      if (filterSource) params.source = filterSource;
+      const res = await tendersApi.list(params);
+      setTenders(res.data);
+      setTotal(res.total);
+      setSelected(new Set());
+    } catch {
+      addToast('Xatolik', 'Tenderlarni yuklashda xato', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, filterStatus, filterSource]);
+
+  useEffect(() => { fetchTenders(); }, [fetchTenders]);
+
+  const totalPages = Math.ceil(total / perPage);
+
+  const toggleSelect = (id: number) => setSelected(prev => {
+    const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s;
   });
 
-  const toggleSelect = (id: number) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const deleteTender = async (t: AdminTender) => {
+    if (!confirm(`"${t.title}" ni o'chirishni tasdiqlaysizmi?`)) return;
+    try {
+      await tendersApi.delete(t.id);
+      setTenders(prev => prev.filter(x => x.id !== t.id));
+      setTotal(p => p - 1);
+      addToast('O\'chirildi', 'Tender o\'chirildi', 'success');
+    } catch { addToast('Xatolik', 'O\'chirishda xato', 'error'); }
   };
 
-  const toggleAll = () => {
-    if (selected.size === filtered.length) setSelected(new Set());
-    else setSelected(new Set(filtered.map(t => t.id)));
+  const bulkDelete = async () => {
+    if (selected.size === 0) return;
+    if (!confirm(`${selected.size} ta tenderni o'chirishni tasdiqlaysizmi?`)) return;
+    try {
+      const res = await tendersApi.bulkDelete(Array.from(selected));
+      addToast('O\'chirildi', `${res.data?.deleted ?? selected.size} ta tender o'chirildi`, 'success');
+      fetchTenders();
+    } catch { addToast('Xatolik', 'O\'chirishda xato', 'error'); }
+  };
+
+  const createTender = async () => {
+    if (!createForm.title.trim()) return;
+    setCreating(true);
+    try {
+      await tendersApi.create({
+        title: createForm.title,
+        organization: createForm.organization || undefined,
+        category: createForm.category || undefined,
+        region: createForm.region || undefined,
+        amount: createForm.amount ? Number(createForm.amount) : undefined,
+        currency: createForm.currency,
+        deadline: createForm.deadline || undefined,
+        description: createForm.description || undefined,
+        url: createForm.url || undefined,
+      });
+      addToast('Yaratildi', 'Tender muvaffaqiyatli yaratildi', 'success');
+      setShowCreate(false);
+      setCreateForm({ title: '', organization: '', category: '', region: '', amount: '', currency: 'UZS', deadline: '', description: '', url: '' });
+      fetchTenders();
+    } catch (err: any) {
+      addToast('Xatolik', err?.response?.data?.detail || 'Yaratishda xato', 'error');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const exportCSV = (filename: string, headers: string[], rows: any[][]) => {
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExport = () => {
+    exportCSV('tenderlar.csv',
+      ['ID', 'Sarlavha', 'Tashkilot', 'Manba', 'Kategoriya', 'Miqdor', 'Holat', 'Muddat'],
+      tenders.map(t => [t.id, t.title, t.organization || '', t.source, t.category || '', t.amount || '', t.status, t.deadline ? new Date(t.deadline).toLocaleDateString('uz') : ''])
+    );
   };
 
   return (
     <div className="page-container">
-      <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)', marginBottom: '24px' }}>Tenderlar</h1>
-
-      <div className="grid-3 mb-24">
-        {scrapers.map(s => (
-          <div key={s.id} className="card stat-card">
-            <div className="flex-between mb-8">
-              <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>{s.name}</span>
-              <span className={`badge ${(scraperStates[s.id] || s.status) === 'running' ? 'badge-yellow' : 'badge-green'}`}>
-                {(scraperStates[s.id] || s.status) === 'running' ? 'Ishlayapti...' : 'Tayyor'}
-              </span>
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-3)', marginBottom: '4px' }}>Oxirgi: {s.lastRun}</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-3)', marginBottom: '12px' }}>Topildi: {s.lastCount} ta</div>
-            <button
-              className="btn btn-sm btn-primary btn-full"
-              onClick={() => triggerScraper(s.id)}
-              disabled={(scraperStates[s.id] || s.status) === 'running'}
-            >
-              {(scraperStates[s.id] || s.status) === 'running'
-                ? <><RefreshCw size={14} className="animate-spin" /> Ishlayapti...</>
-                : <><Play size={14} /> Ishga tushirish</>
-              }
+      <div className="flex-between mb-24">
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)' }}>Tenderlar</h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Jami: {total} ta tender</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-sm btn-primary" onClick={() => setShowCreate(true)}><Plus size={13} /> Yangi tender</button>
+          {selected.size > 0 && (
+            <button className="btn btn-sm" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} onClick={bulkDelete}>
+              <Trash2 size={14} /> O'chirish ({selected.size})
             </button>
-          </div>
-        ))}
-      </div>
-
-      <div className="card mb-16" style={{ padding: '12px 20px' }}>
-        <div style={{ display: 'flex', gap: '24px', fontSize: '13px' }}>
-          <span style={{ color: 'var(--text-3)' }}>Jami: <b style={{ color: 'var(--text-0)' }}>{stats.total}</b></span>
-          <span style={{ color: 'var(--green)' }}>Faol: <b>{stats.active}</b></span>
-          <span style={{ color: 'var(--red)' }}>Yopilgan: <b>{stats.closed}</b></span>
-          <span style={{ color: 'var(--yellow)' }}>Bekor: <b>{stats.cancelled}</b></span>
-          <span style={{ color: 'var(--purple)' }}>G'olib: <b>{stats.awarded}</b></span>
+          )}
+          <button className="btn btn-sm btn-ghost" onClick={handleExport} disabled={tenders.length === 0}><Download size={14} /> CSV</button>
+          <button className="btn btn-sm btn-ghost" onClick={fetchTenders}><RefreshCw size={14} /></button>
         </div>
       </div>
 
-      <div className="card mb-16">
-        <div className="card-body" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div className="input-with-icon" style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+      <div className="card mb-24">
+        <div className="card-body" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
             <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
-            <input className="input" placeholder="Tender nomi..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: '36px' }} />
+            <input className="input" placeholder="Sarlavha, tashkilot, ID..." value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }} style={{ paddingLeft: '36px' }} />
           </div>
-          <select className="input select" style={{ width: '130px' }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="all">Barcha holat</option>
+          <select className="input select" style={{ width: '140px' }} value={filterStatus}
+            onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
+            <option value="">Barcha holat</option>
             <option value="active">Faol</option>
-            <option value="closed">Yopilgan</option>
+            <option value="closed">Yopiq</option>
             <option value="cancelled">Bekor</option>
-            <option value="awarded">G'olib</option>
+            <option value="awarded">Topshirildi</option>
           </select>
-          <select className="input select" style={{ width: '130px' }} value={filterSource} onChange={e => setFilterSource(e.target.value)}>
-            <option value="all">Barcha manba</option>
+          <select className="input select" style={{ width: '130px' }} value={filterSource}
+            onChange={e => { setFilterSource(e.target.value); setPage(1); }}>
+            <option value="">Barcha manba</option>
             <option value="uzex">UZEX</option>
-            <option value="mc">MC</option>
+            <option value="mc">MC.uz</option>
             <option value="mygov">MyGov</option>
           </select>
         </div>
       </div>
 
-      {selected.size > 0 && (
-        <div className="card mb-16" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--primary-soft)' }}>
-          <span style={{ fontSize: '13px', color: 'var(--text-0)' }}>{selected.size} ta tanlandi</span>
-          <button className="btn btn-sm btn-danger" onClick={() => { addToast('O\'chirildi', `${selected.size} ta tender o'chirildi`, 'info'); setSelected(new Set()); }}>
-            <Trash2 size={14} /> O'chirish
-          </button>
-          <button className="btn btn-sm" onClick={() => setSelected(new Set())}>Bekor qilish</button>
-        </div>
-      )}
-
       <div className="card">
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th><input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} /></th>
-                <th>ID</th>
-                <th>Nomi</th>
-                <th>Manba</th>
-                <th>Kategoriya</th>
-                <th>Hudud</th>
-                <th>Summa (UZS)</th>
-                <th>Holat</th>
-                <th>Muddat</th>
-                <th>Amallar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(t => (
-                <tr key={t.id}>
-                  <td><input type="checkbox" checked={selected.has(t.id)} onChange={() => toggleSelect(t.id)} /></td>
-                  <td style={{ color: 'var(--text-4)' }}>{t.id}</td>
-                  <td style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</td>
-                  <td><span className={`badge ${sourceColors[t.source]}`}>{t.source.toUpperCase()}</span></td>
-                  <td style={{ color: 'var(--text-2)' }}>{t.category}</td>
-                  <td style={{ color: 'var(--text-2)' }}>{t.region}</td>
-                  <td style={{ fontWeight: 600 }}>{fmtAmount(t.amount)}</td>
-                  <td><span className={`badge ${statusColors[t.status]}`}>{t.status}</span></td>
-                  <td style={{ color: 'var(--text-3)' }}>{t.deadline}</td>
-                  <td>
-                    <div className="table-actions">
-                      <button className="btn-icon" onClick={() => setEditTender(t)}><Edit3 size={15} /></button>
-                      <button className="btn-icon" onClick={() => addToast('O\'chirildi', `Tender #${t.id} o'chirildi`, 'info')}><Trash2 size={15} style={{ color: 'var(--red)' }} /></button>
-                    </div>
-                  </td>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <RefreshCw size={20} className="animate-spin" style={{ margin: '0 auto', color: 'var(--text-3)' }} />
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>
+                    <input type="checkbox" checked={selected.size === tenders.length && tenders.length > 0}
+                      onChange={() => selected.size === tenders.length ? setSelected(new Set()) : setSelected(new Set(tenders.map(t => t.id)))}
+                      style={{ accentColor: 'var(--primary)' }} />
+                  </th>
+                  <th>Sarlavha</th><th>Manba</th><th>Kategoriya</th><th>Miqdor</th><th>Holat</th><th>Muddat</th><th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {tenders.length === 0 ? (
+                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-4)' }}>Tenderlar topilmadi</td></tr>
+                ) : tenders.map(t => (
+                  <tr key={t.id}>
+                    <td><input type="checkbox" checked={selected.has(t.id)} onChange={() => toggleSelect(t.id)} style={{ accentColor: 'var(--primary)' }} /></td>
+                    <td style={{ maxWidth: '220px' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.title}>{t.title}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{t.organization || '—'}</div>
+                    </td>
+                    <td><span className={`badge ${sourceColors[t.source] || 'badge-primary'}`}>{t.source.toUpperCase()}</span></td>
+                    <td style={{ color: 'var(--text-2)' }}>{t.category || '—'}</td>
+                    <td style={{ color: 'var(--text-1)', fontWeight: 500 }}>{fmt(t.amount)}</td>
+                    <td><span className={`badge ${statusColors[t.status] || 'badge-primary'}`}>{t.status}</span></td>
+                    <td style={{ color: t.deadline && new Date(t.deadline) < new Date() ? 'var(--red)' : 'var(--text-3)', fontSize: '12px' }}>
+                      {t.deadline ? new Date(t.deadline).toLocaleDateString('uz') : '—'}
+                    </td>
+                    <td>
+                      <div className="table-actions">
+                        {t.url && <a href={t.url} target="_blank" rel="noreferrer" className="btn-icon" title="Ko'rish"><ExternalLink size={14} /></a>}
+                        <button className="btn-icon" onClick={() => deleteTender(t)}><Trash2 size={14} style={{ color: 'var(--red)' }} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {totalPages > 1 && (
+          <div className="card-footer" style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+            <button className="btn btn-sm btn-ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Oldingi</button>
+            <span style={{ fontSize: '13px', color: 'var(--text-3)', alignSelf: 'center' }}>{page} / {totalPages}</span>
+            <button className="btn btn-sm btn-ghost" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Keyingi →</button>
+          </div>
+        )}
       </div>
 
-      {editTender && (
-        <div className="modal-overlay" onClick={() => setEditTender(null)}>
+      {showCreate && (
+        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
           <div className="modal" style={{ maxWidth: '560px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontWeight: 700, color: 'var(--text-0)' }}>Tenderni tahrirlash #{editTender.id}</h3>
-              <button className="btn-icon" onClick={() => setEditTender(null)}><X size={18} /></button>
+              <h3 style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-0)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Plus size={16} style={{ color: 'var(--primary)' }} /> Yangi tender yaratish
+              </h3>
+              <button className="btn-icon" onClick={() => setShowCreate(false)}><X size={18} /></button>
             </div>
-            <div className="modal-body">
-              <div className="input-group"><label className="input-label">Nomi</label><input className="input" defaultValue={editTender.title} /></div>
-              <div className="grid-2">
-                <div className="input-group"><label className="input-label">Kategoriya</label><input className="input" defaultValue={editTender.category} /></div>
-                <div className="input-group"><label className="input-label">Hudud</label><input className="input" defaultValue={editTender.region} /></div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="input-group">
+                <label className="input-label">Sarlavha <span style={{ color: 'var(--red)' }}>*</span></label>
+                <input className="input" placeholder="Tender sarlavhasi..." value={createForm.title}
+                  onChange={e => setCreateForm(p => ({ ...p, title: e.target.value }))} />
               </div>
-              <div className="grid-2">
-                <div className="input-group"><label className="input-label">Summa (UZS)</label><input className="input" type="number" defaultValue={editTender.amount} /></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="input-group">
-                  <label className="input-label">Holat</label>
-                  <select className="input select" defaultValue={editTender.status}>
-                    <option value="active">Faol</option>
-                    <option value="closed">Yopilgan</option>
-                    <option value="cancelled">Bekor</option>
-                    <option value="awarded">G'olib aniqlangan</option>
+                  <label className="input-label">Tashkilot</label>
+                  <input className="input" placeholder="Tashkilot nomi" value={createForm.organization}
+                    onChange={e => setCreateForm(p => ({ ...p, organization: e.target.value }))} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Kategoriya</label>
+                  <select className="input select" value={createForm.category}
+                    onChange={e => setCreateForm(p => ({ ...p, category: e.target.value }))}>
+                    <option value="">Tanlang</option>
+                    <option value="goods">Tovarlar</option>
+                    <option value="services">Xizmatlar</option>
+                    <option value="works">Ishlar</option>
+                    <option value="consulting">Konsalting</option>
                   </select>
                 </div>
               </div>
-              <div className="input-group"><label className="input-label">Muddat</label><input className="input" type="date" defaultValue={editTender.deadline} /></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="input-group">
+                  <label className="input-label">Mintaqa</label>
+                  <input className="input" placeholder="Toshkent, Samarqand..." value={createForm.region}
+                    onChange={e => setCreateForm(p => ({ ...p, region: e.target.value }))} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Muddat</label>
+                  <input className="input" type="datetime-local" value={createForm.deadline}
+                    onChange={e => setCreateForm(p => ({ ...p, deadline: e.target.value }))} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+                <div className="input-group">
+                  <label className="input-label">Summa</label>
+                  <input className="input" type="number" placeholder="0" value={createForm.amount}
+                    onChange={e => setCreateForm(p => ({ ...p, amount: e.target.value }))} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Valyuta</label>
+                  <select className="input select" value={createForm.currency}
+                    onChange={e => setCreateForm(p => ({ ...p, currency: e.target.value }))}>
+                    <option value="UZS">UZS</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </div>
+              </div>
+              <div className="input-group">
+                <label className="input-label">Tavsif</label>
+                <textarea placeholder="Tender haqida..." value={createForm.description}
+                  onChange={e => setCreateForm(p => ({ ...p, description: e.target.value }))}
+                  style={{ width: '100%', minHeight: '80px', padding: '10px 12px', background: 'var(--bg-0)', border: '1px solid var(--border-1)', borderRadius: '8px', color: 'var(--text-0)', fontSize: '13px', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div className="input-group">
+                <label className="input-label">URL</label>
+                <input className="input" placeholder="https://..." value={createForm.url}
+                  onChange={e => setCreateForm(p => ({ ...p, url: e.target.value }))} />
+              </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setEditTender(null)}>Bekor</button>
-              <button className="btn btn-primary" onClick={() => { addToast('Saqlandi', `Tender #${editTender.id} yangilandi`, 'success'); setEditTender(null); }}>Saqlash</button>
+              <button className="btn btn-ghost" onClick={() => setShowCreate(false)}>Bekor qilish</button>
+              <button className="btn btn-primary" onClick={createTender} disabled={creating || !createForm.title.trim()}>
+                {creating ? <><RefreshCw size={13} className="animate-spin" /> Yaratilmoqda...</> : <><Plus size={13} /> Yaratish</>}
+              </button>
             </div>
           </div>
         </div>

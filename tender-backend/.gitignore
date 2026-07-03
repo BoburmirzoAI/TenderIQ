@@ -39,3 +39,4 @@ coverage.xml
 uploads/
 media/
 docker-compose.override.yml
+.claude/

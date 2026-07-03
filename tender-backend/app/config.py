@@ -91,15 +91,17 @@ class Settings(BaseSettings):
     @field_validator("SECRET_KEY")
     @classmethod
     def validate_secret_key(cls, v: str, info) -> str:
-        if info.data.get("APP_ENV") == "production" and v == "change-me-in-production":
-            raise ValueError("SECRET_KEY must be changed in production!")
+        weak = {"change-me-in-production", "secret", ""}
+        if info.data.get("APP_ENV") == "production" and (v in weak or len(v) < 32):
+            raise ValueError("SECRET_KEY must be a strong random string (32+ chars) in production!")
         return v
 
     @field_validator("JWT_SECRET_KEY")
     @classmethod
     def validate_jwt_secret(cls, v: str, info) -> str:
-        if info.data.get("APP_ENV") == "production" and v == "jwt-secret-change-in-production":
-            raise ValueError("JWT_SECRET_KEY must be changed in production!")
+        weak = {"jwt-secret-change-in-production", "your-jwt-secret-key-change-in-production", "secret", ""}
+        if info.data.get("APP_ENV") == "production" and (v in weak or len(v) < 32):
+            raise ValueError("JWT_SECRET_KEY must be a strong random string (32+ chars) in production!")
         return v
 
 
