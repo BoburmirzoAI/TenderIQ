@@ -9,8 +9,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import select
 
 from app.database import async_session
-from app.models.company import Company
-from app.models.user import User
+from app.models.companies.company import Company
+from app.models.auth.user import User
 from bot.keyboards.inline import category_kb, region_kb
 from bot.keyboards.reply import cancel_kb, main_menu_kb
 

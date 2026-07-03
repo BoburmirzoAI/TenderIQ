@@ -7,7 +7,7 @@ from aiogram.types import ChatMemberUpdated
 from sqlalchemy import select
 
 from app.database import async_session
-from app.models.bot_group import BotGroup
+from app.models.communication.bot_group import BotGroup
 
 router = Router()
 logger = logging.getLogger(__name__)

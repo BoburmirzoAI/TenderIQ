@@ -2,8 +2,8 @@
 
 import pytest
 
-from app.scraper.cleaner import clean_amount, clean_category, clean_date, clean_region
-from app.scraper.deduplicator import deduplicate_tenders, is_duplicate_by_title
+from app.scraper.core.cleaner import clean_amount, clean_category, clean_date, clean_region
+from app.scraper.core.deduplicator import deduplicate_tenders, is_duplicate_by_title
 
 
 class TestCleanAmount:

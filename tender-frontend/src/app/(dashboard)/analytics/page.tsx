@@ -476,7 +476,7 @@ export default function AnalyticsPage() {
             <CardContent>
               {competitors?.top_competitors &&
               competitors.top_competitors.length > 0 ? (
-                <Table>
+                <div className="overflow-x-auto"><Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-12">#</TableHead>
@@ -554,7 +554,7 @@ export default function AnalyticsPage() {
                       </TableRow>
                     ))}
                   </TableBody>
-                </Table>
+                </Table></div>
               ) : (
                 <EmptyState text="Raqobatchilar haqida ma'lumot mavjud emas" />
               )}
@@ -605,7 +605,7 @@ export default function AnalyticsPage() {
                   <h4 className="text-sm font-medium mb-3">
                     So&apos;nggi g&apos;oliblar
                   </h4>
-                  <Table>
+                  <div className="overflow-x-auto"><Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Sana</TableHead>
@@ -638,7 +638,7 @@ export default function AnalyticsPage() {
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
+                  </Table></div>
                 </div>
               )}
             </CardContent>

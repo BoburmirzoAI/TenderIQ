@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import api from "@/lib/api";
+import { useNotificationStore } from "@/store/notifications";
 
 interface Notification {
   id: number;
@@ -66,6 +67,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function NotificationsPage() {
+  const { setUnreadCount, decrement: decrementGlobal } = useNotificationStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -84,7 +86,9 @@ export default function NotificationsPage() {
       setTotal(listRes.data.total);
       setHasNext(listRes.data.has_next);
       setPage(p);
-      setUnread(statsRes.data.data.unread);
+      const unreadVal = statsRes.data.data.unread ?? 0;
+      setUnread(unreadVal);
+      setUnreadCount(unreadVal);
     } catch {
       toast.error("Bildirishnomalarni yuklashda xatolik");
     } finally {
@@ -103,6 +107,7 @@ export default function NotificationsPage() {
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
       setUnread((prev) => Math.max(0, prev - 1));
+      decrementGlobal(1);
     } catch {
       toast.error("Xatolik yuz berdi");
     }
@@ -114,6 +119,7 @@ export default function NotificationsPage() {
       await api.patch("/v1/notifications/read-all");
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnread(0);
+      setUnreadCount(0);
       toast.success("Barcha bildirishnomalar o'qilgan deb belgilandi");
     } catch {
       toast.error("Xatolik yuz berdi");

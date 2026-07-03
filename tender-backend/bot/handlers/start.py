@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy import select
 
 from app.database import async_session
-from app.models.user import User
+from app.models.auth.user import User
 from bot.keyboards.inline import main_inline_kb, link_account_kb
 from bot.keyboards.reply import main_menu_kb
 

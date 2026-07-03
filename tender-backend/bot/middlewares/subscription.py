@@ -8,8 +8,8 @@ from aiogram.types import TelegramObject
 from sqlalchemy import select
 
 from app.database import async_session
-from app.models.subscription import Subscription
-from app.models.user import User
+from app.models.finance.subscription import Subscription
+from app.models.auth.user import User
 
 logger = logging.getLogger(__name__)
 

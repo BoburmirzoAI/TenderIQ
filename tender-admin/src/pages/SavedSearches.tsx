@@ -1,211 +1,227 @@
-import { useState } from 'react';
-import { Search, Bell, Users, Trash2, Eye, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Search, Trash2, Eye, X, RefreshCw, Bell, Download, BarChart3, Target, Activity, DollarSign, FileText, TrendingUp } from 'lucide-react';
 import { useAdmin } from '../hooks/useAdmin';
-
-interface SavedSearch {
-  id: number;
-  user: string;
-  name: string;
-  filters: Record<string, string | number | boolean>;
-  notify: boolean;
-  created_at: string;
-  last_triggered: string | null;
-  results_count: number;
-}
-
-const mockSearches: SavedSearch[] = [
-  { id: 1, user: 'Bobur Sobirjonov', name: 'IT tenderlar Toshkent', filters: { category: 'IT', region: 'Toshkent', min_amount: 100000000, source: 'all' }, notify: true, created_at: '2026-05-10', last_triggered: '2026-06-17', results_count: 24 },
-  { id: 2, user: 'Jasur Karimov', name: 'Qurilish 500M+', filters: { category: 'Qurilish', min_amount: 500000000, status: 'active' }, notify: true, created_at: '2026-04-22', last_triggered: '2026-06-16', results_count: 15 },
-  { id: 3, user: 'Dilnoza Rahimova', name: 'Tibbiyot barcha hududlar', filters: { category: 'Tibbiyot', region: 'all' }, notify: false, created_at: '2026-05-30', last_triggered: null, results_count: 8 },
-  { id: 4, user: 'Aziz Toshmatov', name: 'Transport UZEX', filters: { category: 'Transport', source: 'uzex', status: 'active' }, notify: true, created_at: '2026-03-15', last_triggered: '2026-06-15', results_count: 31 },
-  { id: 5, user: 'Sherzod Umarov', name: 'Dori va tibbiy jihozlar', filters: { category: 'Tibbiyot', keywords: 'dori, tibbiy, farmatsevtik', min_amount: 50000000 }, notify: true, created_at: '2026-06-01', last_triggered: '2026-06-17', results_count: 12 },
-  { id: 6, user: 'Nodira Yusupova', name: 'Samarqand tenderlar', filters: { region: 'Samarqand', status: 'active' }, notify: false, created_at: '2026-05-15', last_triggered: '2026-06-10', results_count: 19 },
-  { id: 7, user: 'Otabek Mirzayev', name: 'Server va tarmoq', filters: { keywords: 'server, tarmoq, IT infratuzilma', min_amount: 200000000, source: 'all' }, notify: true, created_at: '2026-06-05', last_triggered: '2026-06-16', results_count: 7 },
-  { id: 8, user: 'Malika Nurmatova', name: 'Ta\'lim sohasidagi tenderlar', filters: { category: 'Ta\'lim', region: 'all', status: 'active' }, notify: false, created_at: '2026-06-12', last_triggered: null, results_count: 5 },
-];
-
-const activeAlerts = mockSearches.filter(s => s.notify).length;
-const uniqueUsers = new Set(mockSearches.map(s => s.user)).size;
-
-const tdStyle: React.CSSProperties = { padding: '12px 16px', verticalAlign: 'middle' };
+import { savedSearchesApi, type AdminSavedSearch, type SavedSearchStats } from '../api/admin';
 
 export default function SavedSearches() {
-  const { addToast } = useAdmin();
-  const [detailSearch, setDetailSearch] = useState<SavedSearch | null>(null);
-  const [filterModalSearch, setFilterModalSearch] = useState<SavedSearch | null>(null);
-  const [searches, setSearches] = useState(mockSearches);
+  const { addToast, setActiveTab } = useAdmin();
+  const [searches, setSearches] = useState<AdminSavedSearch[]>([]);
+  const [stats, setStats] = useState<SavedSearchStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
+  const [detailItem, setDetailItem] = useState<AdminSavedSearch | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const handleDelete = (s: SavedSearch) => {
-    setSearches(prev => prev.filter(x => x.id !== s.id));
-    addToast('O\'chirildi', `"${s.name}" qidiruvi o'chirildi`, 'info');
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [list, s] = await Promise.all([savedSearchesApi.list(), savedSearchesApi.stats()]);
+      setSearches(list);
+      setStats(s);
+    } catch {
+      addToast('Xatolik', "Ma'lumot yuklanmadi", 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => { load(); }, []);
+
+  const filtered = searches.filter(s =>
+    !query || s.name.toLowerCase().includes(query.toLowerCase()) ||
+    (s.user_email ?? '').toLowerCase().includes(query.toLowerCase())
+  );
+
+  const exportCSV = (filename: string, headers: string[], rows: any[][]) => {
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const toggleNotify = (s: SavedSearch) => {
-    setSearches(prev => prev.map(x => x.id === s.id ? { ...x, notify: !x.notify } : x));
-    addToast('Yangilandi', `"${s.name}" bildirishnomasi ${s.notify ? 'o\'chirildi' : 'yoqildi'}`, 'info');
+  const handleExport = () => {
+    exportCSV('saqlangan_qidiruvlar.csv',
+      ['Nomi', 'Foydalanuvchi', 'Email', 'Filtrlar', 'Sana'],
+      filtered.map(s => [s.name, s.user_name ?? '', s.user_email ?? '', s.filters, s.created_at])
+    );
   };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const item = searches.find(s => s.id === deleteId)!;
+    setDeleting(true);
+    try {
+      await savedSearchesApi.delete(deleteId);
+      setSearches(prev => prev.filter(s => s.id !== deleteId));
+      setDeleteId(null);
+      addToast("O'chirildi", `"${item.name}" o'chirildi`, 'info');
+    } catch {
+      addToast('Xatolik', "O'chirishda xato", 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const parseFilters = (raw: string) => {
+    try { return JSON.parse(raw); } catch { return {}; }
+  };
+
+  if (loading) {
+    return (
+      <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+        <RefreshCw size={24} className="animate-spin" style={{ color: 'var(--text-4)' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
       <div className="flex-between mb-24">
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)' }}>Saqlangan qidiruvlar</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Foydalanuvchilarning saqlangan qidiruvlari</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 800 }}>Saqlangan Qidiruvlar</h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Foydalanuvchilar saqlagan qidiruv filtrlari</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-ghost btn-sm" onClick={load}><RefreshCw size={13} /></button>
+          <button className="btn btn-ghost btn-sm" onClick={handleExport} title="CSV yuklash"><Download size={13} /> CSV</button>
         </div>
       </div>
 
-      <div className="grid-3 mb-24">
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Jami qidiruvlar</span>
-            <Search size={16} style={{ color: 'var(--blue)' }} />
-          </div>
-          <div className="stat-value">{searches.length}</div>
+      {/* Quick Actions */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        {[
+          { label: 'Tenderlar', tab: 'tenders', icon: Target, color: 'var(--teal)' },
+          { label: 'Analitika', tab: 'analytics', icon: BarChart3, color: 'var(--primary)' },
+          { label: 'Tender xaritasi', tab: 'tender-map', icon: Search, color: 'var(--green)' },
+          { label: 'Raqobatchilar', tab: 'competitors', icon: Activity, color: 'var(--yellow)' },
+          { label: 'Narx strategiya', tab: 'pricing', icon: DollarSign, color: 'var(--red)' },
+          { label: 'Hisobotlar', tab: 'reports', icon: FileText, color: 'var(--purple)' },
+        ].map(btn => (
+          <button key={btn.label} className="btn btn-ghost btn-sm" onClick={() => setActiveTab?.(btn.tab)}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', borderColor: 'var(--border-1)' }}>
+            <btn.icon size={13} style={{ color: btn.color }} /> {btn.label}
+          </button>
+        ))}
+      </div>
+
+      {stats && (
+        <div className="grid-4 mb-24">
+          {[
+            { label: 'Jami qidiruvlar',     value: stats.total,                  color: 'var(--primary)' },
+            { label: 'Foydalanuvchilar',    value: stats.total_users,            color: 'var(--green)' },
+            { label: "O'rtacha (har biri)", value: stats.avg_per_user.toFixed(1), color: 'var(--teal)' },
+            { label: "So'nggi 7 kun",       value: searches.filter(s => s.created_at >= new Date(Date.now() - 7*86400000).toISOString().slice(0,10)).length, color: 'var(--yellow)' },
+          ].map(s => (
+            <div key={s.label} className="card stat-card">
+              <div className="stat-label mb-8">{s.label}</div>
+              <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+            </div>
+          ))}
         </div>
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Faol bildirishnomalar</span>
-            <Bell size={16} style={{ color: 'var(--green)' }} />
+      )}
+
+      <div className="card mb-16">
+        <div className="card-body" style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
+            <input className="input" style={{ paddingLeft: '32px' }} placeholder="Nom yoki email..." value={query} onChange={e => setQuery(e.target.value)} />
           </div>
-          <div className="stat-value">{searches.filter(s => s.notify).length}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="flex-between mb-8">
-            <span className="stat-label">Foydalanuvchilar</span>
-            <Users size={16} style={{ color: 'var(--purple)' }} />
-          </div>
-          <div className="stat-value">{uniqueUsers}</div>
+          <span style={{ fontSize: '12px', color: 'var(--text-4)', alignSelf: 'center' }}>{filtered.length} ta</span>
         </div>
       </div>
 
       <div className="card">
-        <div className="table-wrap">
-          <table className="table" style={{ tableLayout: 'fixed', width: '100%' }}>
-            <colgroup>
-              <col style={{ width: '48px' }} />
-              <col style={{ width: '160px' }} />
-              <col style={{ width: '200px' }} />
-              <col style={{ width: '160px' }} />
-              <col style={{ width: '90px' }} />
-              <col style={{ width: '110px' }} />
-              <col style={{ width: '110px' }} />
-              <col style={{ width: '90px' }} />
-              <col style={{ width: '100px' }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th style={tdStyle}>ID</th>
-                <th style={tdStyle}>Foydalanuvchi</th>
-                <th style={tdStyle}>Qidiruv nomi</th>
-                <th style={tdStyle}>Filtrlar</th>
-                <th style={tdStyle}>Bildirishnoma</th>
-                <th style={tdStyle}>Yaratilgan</th>
-                <th style={tdStyle}>Oxirgi</th>
-                <th style={tdStyle}>Natijalar</th>
-                <th style={tdStyle}>Amallar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {searches.map((s) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={tdStyle}>{s.id}</td>
-                  <td style={{ ...tdStyle, fontWeight: 600 }}>{s.user}</td>
-                  <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</td>
-                  <td style={tdStyle}>
-                    <button
-                      className="badge badge-blue"
-                      style={{ cursor: 'pointer', background: 'none', border: '1px solid var(--blue)', color: 'var(--blue)', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace' }}
-                      onClick={() => setFilterModalSearch(s)}
-                    >
-                      {Object.keys(s.filters).length} filtr
-                    </button>
-                  </td>
-                  <td style={tdStyle}>
-                    <button
-                      onClick={() => toggleNotify(s)}
-                      style={{
-                        width: '36px', height: '20px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-                        background: s.notify ? 'var(--green)' : 'var(--bg-3)',
-                        position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-                      }}
-                    >
-                      <span style={{
-                        position: 'absolute', top: '2px', left: s.notify ? '18px' : '2px',
-                        width: '16px', height: '16px', borderRadius: '50%', background: 'white',
-                        transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                      }} />
-                    </button>
-                  </td>
-                  <td style={{ ...tdStyle, fontSize: '12px' }}>{s.created_at}</td>
-                  <td style={{ ...tdStyle, fontSize: '12px', color: 'var(--text-3)' }}>{s.last_triggered || '-'}</td>
-                  <td style={tdStyle}><span className="badge badge-primary">{s.results_count}</span></td>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button className="btn btn-sm btn-ghost" onClick={() => setDetailSearch(s)}><Eye size={14} /></button>
-                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(s)}><Trash2 size={14} /></button>
-                    </div>
-                  </td>
+        {filtered.length === 0 ? (
+          <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-4)' }}>
+            <Bell size={40} style={{ marginBottom: '12px', opacity: 0.3 }} />
+            <p>Saqlangan qidiruvlar topilmadi</p>
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th style={{ padding: '12px 16px' }}>Nomi</th>
+                  <th style={{ padding: '12px 16px' }}>Foydalanuvchi</th>
+                  <th style={{ padding: '12px 16px' }}>Sana</th>
+                  <th style={{ padding: '12px 16px' }}>Amallar</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map(s => (
+                  <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>{s.name}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px' }}>
+                      <div>{s.user_name ?? `User #${s.user_id}`}</div>
+                      {s.user_email && <div style={{ fontSize: '11px', color: 'var(--text-4)' }}>{s.user_email}</div>}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-4)' }}>{s.created_at}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button className="btn btn-sm btn-ghost" onClick={() => setActiveTab?.('tenders')} title="Tenderlardan qidirish">
+                          <Search size={13} /> Ishga tushirish
+                        </button>
+                        <button className="btn btn-sm btn-ghost" onClick={() => setDetailItem(s)}>
+                          <Eye size={13} /> Filtrlar
+                        </button>
+                        <button className="btn-icon" onClick={() => setDeleteId(s.id)}>
+                          <Trash2 size={14} style={{ color: 'var(--red)' }} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Filter JSON Modal */}
-      {filterModalSearch && (
-        <div className="modal-overlay" onClick={() => setFilterModalSearch(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+      {detailItem && (
+        <div className="modal-overlay" onClick={() => setDetailItem(null)}>
+          <div className="modal" style={{ maxWidth: '460px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-0)' }}>
-                Filtrlar — {filterModalSearch.name}
-              </h2>
-              <button className="btn btn-sm btn-ghost" onClick={() => setFilterModalSearch(null)}><X size={14} /></button>
+              <h3 style={{ fontWeight: 700 }}>{detailItem.name} — Filtrlar</h3>
+              <button className="btn-icon" onClick={() => setDetailItem(null)}><X size={18} /></button>
             </div>
-            <div className="modal-body">
-              <div style={{ background: 'var(--bg-1)', borderRadius: '8px', padding: '16px', fontFamily: 'monospace', fontSize: '13px', lineHeight: '1.8', whiteSpace: 'pre-wrap', color: 'var(--text-2)', border: '1px solid var(--border)' }}>
-                {JSON.stringify(filterModalSearch.filters, null, 2)}
-              </div>
+            <div className="modal-body" style={{ padding: '16px' }}>
+              {Object.entries(parseFilters(detailItem.filters)).length === 0 ? (
+                <code style={{ fontSize: '12px', color: 'var(--text-3)' }}>{detailItem.filters}</code>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {Object.entries(parseFilters(detailItem.filters)).map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', gap: '12px', padding: '8px 12px', background: 'var(--bg-0)', borderRadius: '6px', border: '1px solid var(--border-1)' }}>
+                      <code style={{ fontSize: '12px', color: 'var(--primary)', minWidth: '100px' }}>{k}</code>
+                      <span style={{ fontSize: '12px', color: 'var(--text-1)' }}>{String(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setFilterModalSearch(null)}>Yopish</button>
+              <button className="btn btn-ghost" onClick={() => setDetailItem(null)}>Yopish</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Detail Modal */}
-      {detailSearch && (
-        <div className="modal-overlay" onClick={() => setDetailSearch(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '550px' }}>
+      {deleteId && (
+        <div className="modal-overlay" onClick={() => setDeleteId(null)}>
+          <div className="modal" style={{ maxWidth: '360px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-0)' }}>{detailSearch.name}</h2>
-              <button className="btn btn-sm btn-ghost" onClick={() => setDetailSearch(null)}><X size={14} /></button>
+              <h3 style={{ fontWeight: 700, color: 'var(--red)' }}>O'chirishni tasdiqlang</h3>
+              <button className="btn-icon" onClick={() => setDeleteId(null)}><X size={18} /></button>
             </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span className="stat-label">Foydalanuvchi:</span>
-                <span style={{ fontWeight: 600 }}>{detailSearch.user}</span>
-              </div>
-              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                <span><span className="stat-label">Yaratilgan:</span> {detailSearch.created_at}</span>
-                <span><span className="stat-label">Oxirgi:</span> {detailSearch.last_triggered || 'Hali ishga tushmagan'}</span>
-              </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span className="stat-label">Natijalar:</span>
-                <span className="badge badge-primary">{detailSearch.results_count}</span>
-                <span className="stat-label" style={{ marginLeft: '12px' }}>Bildirishnoma:</span>
-                <span className={`badge ${detailSearch.notify ? 'badge-green' : 'badge-red'}`}>{detailSearch.notify ? 'Yoqilgan' : 'O\'chirilgan'}</span>
-              </div>
-              <div>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '10px', color: 'var(--text-0)' }}>Filtrlar (JSON)</h3>
-                <div style={{ background: 'var(--bg-1)', borderRadius: '8px', padding: '16px', fontFamily: 'monospace', fontSize: '12px', lineHeight: '1.7', whiteSpace: 'pre-wrap', color: 'var(--text-2)', border: '1px solid var(--border)' }}>
-                  {JSON.stringify(detailSearch.filters, null, 2)}
-                </div>
-              </div>
+            <div className="modal-body" style={{ padding: '20px', fontSize: '13px', color: 'var(--text-2)' }}>
+              Bu saqlangan qidiruvni o'chirmoqchimisiz?
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setDetailSearch(null)}>Yopish</button>
+              <button className="btn btn-ghost" onClick={() => setDeleteId(null)}>Bekor</button>
+              <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />} O'chirish
+              </button>
             </div>
           </div>
         </div>

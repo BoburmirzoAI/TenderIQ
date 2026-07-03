@@ -8,7 +8,7 @@ from aiogram.types import TelegramObject, Message, CallbackQuery
 from sqlalchemy import select
 
 from app.database import async_session
-from app.models.user import User
+from app.models.auth.user import User
 
 logger = logging.getLogger(__name__)
 

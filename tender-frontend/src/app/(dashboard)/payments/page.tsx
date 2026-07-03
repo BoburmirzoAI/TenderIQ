@@ -91,7 +91,17 @@ export default function PaymentsPage() {
       });
       const result = data.data;
       if (result.payment_url) {
-        window.location.href = result.payment_url;
+        const allowed = ["click.uz", "payme.uz", "uzum.uz", "localhost"];
+        try {
+          const host = new URL(result.payment_url).hostname;
+          if (allowed.some((d) => host === d || host.endsWith(`.${d}`))) {
+            window.location.href = result.payment_url;
+          } else {
+            toast.error("Noto'g'ri to'lov havolasi");
+          }
+        } catch {
+          toast.error("Noto'g'ri to'lov havolasi");
+        }
       } else {
         toast.info(
           "To'lov tizimi hali ulanmagan. Tez orada Click.uz va Payme orqali to'lash imkoniyati qo'shiladi."
@@ -224,6 +234,7 @@ export default function PaymentsPage() {
         </CardHeader>
         <CardContent>
           {payments.length > 0 ? (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -266,6 +277,7 @@ export default function PaymentsPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Wallet className="h-12 w-12 mb-3 opacity-30" />

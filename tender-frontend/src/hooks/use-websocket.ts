@@ -36,7 +36,7 @@ export function useWebSocket(path: string = "/api/ws/tenders") {
     if (!mountedRef.current) return;
 
     const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-    const url = `${WS_BASE}${path}${token ? `?token=${token}` : ""}`;
+    const url = `${WS_BASE}${path}`;
 
     try {
       const ws = new WebSocket(url);
@@ -47,6 +47,10 @@ export function useWebSocket(path: string = "/api/ws/tenders") {
         if (!mountedRef.current) return;
         setStatus("connected");
         retriesRef.current = 0;
+
+        if (token) {
+          ws.send(JSON.stringify({ type: "auth", token }));
+        }
 
         pingIntervalRef.current = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {

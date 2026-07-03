@@ -4,11 +4,15 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - log_archive:/app/logs/archive
+    group_add:
+      - ${DOCKER_GID:-999}
     ports:
       - "8000:8000"
     env_file: .env
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -21,7 +25,7 @@ services:
       - .:/app
     env_file: .env
     depends_on:
-      - db
+      - postgres
       - redis
 
   celery_worker:
@@ -31,9 +35,13 @@ services:
     command: celery -A app.tasks.celery_app worker --loglevel=info
     volumes:
       - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - log_archive:/app/logs/archive
+    group_add:
+      - ${DOCKER_GID:-999}
     env_file: .env
     depends_on:
-      - db
+      - postgres
       - redis
 
   celery_beat:
@@ -45,17 +53,17 @@ services:
       - .:/app
     env_file: .env
     depends_on:
-      - db
+      - postgres
       - redis
 
-  db:
+  postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: tenderiq
       POSTGRES_PASSWORD: tenderiq
       POSTGRES_DB: tenderiq
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -66,10 +74,11 @@ services:
 
   redis:
     image: redis:7-alpine
+    command: redis-server --requirepass tenderiq_redis_2024
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6380:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "tenderiq_redis_2024", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -78,22 +87,23 @@ services:
     image: dpage/pgadmin4
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@tenderiq.uz
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_PASSWORD: TenderIQ_Admin_2024!
     ports:
-      - "5050:80"
+      - "127.0.0.1:5050:80"
     depends_on:
-      - db
+      - postgres
 
   flower:
     build:
       context: .
       dockerfile: docker/Dockerfile.celery
-    command: celery -A app.tasks.celery_app flower --port=5555
+    command: celery -A app.tasks.celery_app flower --port=5555 --basic-auth=admin:TenderIQ_Flower_2024!
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     env_file: .env
     depends_on:
       - redis
 
 volumes:
   postgres_data:
+  log_archive:

@@ -1,275 +1,250 @@
-import { useState } from 'react';
-import { Trophy, XCircle, TrendingUp, X } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import { useCallback, useEffect, useState } from 'react';
+import { Trophy, BarChart3, RefreshCw, AlertCircle, Download, X, Eye, ExternalLink, TrendingUp, DollarSign, FileText, Target, Activity } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAdmin } from '../hooks/useAdmin';
-
-interface JournalEntry {
-  id: number;
-  tender: string;
-  result: 'win' | 'loss';
-  amount: number;
-  competitor: string;
-  lessons: string;
-  date: string;
-}
-
-const mockEntries: JournalEntry[] = [
-  { id: 1, tender: 'IT uskunalarni yetkazib berish', result: 'win', amount: 450000000, competitor: 'TechWorld', lessons: 'Narx strategiyasi to\'g\'ri tanlangan. Texnik taklif sifati yuqori bo\'ldi.', date: '2026-06-10' },
-  { id: 2, tender: 'Binoni ta\'mirlash ishlari', result: 'loss', amount: 1200000000, competitor: 'BuildMax', lessons: 'Raqobatchi narxi 15% pastroq edi. Keyingi safar bozor narxini chuqurroq tahlil qilish kerak.', date: '2026-06-08' },
-  { id: 3, tender: 'Dori vositalari sotib olish', result: 'win', amount: 320000000, competitor: 'MedTrade', lessons: 'Sertifikatlar va litsenziyalar to\'liq bo\'lgani uchun ustunlik ega bo\'ldik.', date: '2026-05-28' },
-  { id: 4, tender: 'Transport xizmatlari', result: 'loss', amount: 89000000, competitor: 'TransLogic', lessons: 'Mashina parki yetarli emasligi sababli ballar past bo\'ldi.', date: '2026-05-20' },
-  { id: 5, tender: 'Maktab inventari yetkazish', result: 'win', amount: 156000000, competitor: 'EduSupply', lessons: 'Mahalliy ishlab chiqaruvchi ekanligimiz afzallik berdi.', date: '2026-05-15' },
-  { id: 6, tender: 'Server va tarmoq jihozlari', result: 'win', amount: 780000000, competitor: 'NetSolutions', lessons: 'Texnik xodimlar tajribasi va kafolat shartlari hal qiluvchi omil bo\'ldi.', date: '2026-05-10' },
-  { id: 7, tender: 'Oziq-ovqat yetkazib berish', result: 'loss', amount: 195000000, competitor: 'FoodMaster', lessons: 'Logistika xarajatlari yuqori, samaradorlikni oshirish kerak.', date: '2026-05-05' },
-  { id: 8, tender: 'Yo\'l ta\'mirlash loyihasi', result: 'loss', amount: 3500000000, competitor: 'RoadBuild Pro', lessons: 'Tajriba yetarli emas edi, portfelni kengaytirish zarur.', date: '2026-04-28' },
-  { id: 9, tender: 'Tibbiy asbob-uskunalar', result: 'win', amount: 540000000, competitor: 'MedEquip', lessons: 'ISO sertifikati va xalqaro brend vakili ekanligimiz yordam berdi.', date: '2026-04-20' },
-  { id: 10, tender: 'Elektr jihozlari ta\'minoti', result: 'win', amount: 280000000, competitor: 'ElectroPower', lessons: 'Tezkor yetkazib berish muddati va past narx strategiyasi ishladi.', date: '2026-04-15' },
-];
+import { winLossApi, type TenderResultRead, type WinLossStats } from '../api/admin';
 
 const fmtAmount = (n: number) => {
   if (n >= 1e9) return `${(n / 1e9).toFixed(1)} mlrd`;
-  if (n >= 1e6) return `${Math.round(n / 1e6).toLocaleString('ru-RU')} mln`;
-  return n.toLocaleString('ru-RU');
+  if (n >= 1e6) return `${Math.round(n / 1e6)} mln`;
+  return n.toLocaleString();
 };
 
-const wins = mockEntries.filter(e => e.result === 'win').length;
-const losses = mockEntries.filter(e => e.result === 'loss').length;
-const winRate = Math.round((wins / mockEntries.length) * 100);
-const avgDealSize = Math.round(mockEntries.reduce((s, e) => s + e.amount, 0) / mockEntries.length);
+const fmtMln = (n: number) => {
+  if (!n) return '0';
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)} mlrd`;
+  if (n >= 1e6) return `${Math.round(n / 1e6)} mln`;
+  return n.toLocaleString();
+};
 
-const winRateOverTime = [
-  { month: 'Yan', rate: 50 }, { month: 'Fev', rate: 55 }, { month: 'Mar', rate: 60 },
-  { month: 'Apr', rate: 58 }, { month: 'May', rate: 65 }, { month: 'Iyun', rate: winRate },
-];
-
-const winsByCategory = [
-  { name: 'IT', value: 3, color: 'var(--blue)' },
-  { name: 'Tibbiyot', value: 2, color: 'var(--green)' },
-  { name: 'Ta\'lim', value: 1, color: 'var(--yellow)' },
-];
-
-const lossReasons = [
-  { reason: 'Narx yuqori', count: 3 },
-  { reason: 'Tajriba yetarli emas', count: 2 },
-  { reason: 'Texnik imkoniyat', count: 1 },
-  { reason: 'Logistika', count: 1 },
-];
-
-const tdStyle: React.CSSProperties = { padding: '12px 16px', verticalAlign: 'middle' };
-
-const formatDate = (d: string) => {
-  const [y, m, day] = d.split('-');
-  const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
-  return `${day} ${months[parseInt(m) - 1]} ${y}`;
+const exportCSV = (filename: string, headers: string[], rows: any[][]) => {
+  const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
 };
 
 export default function WinLossJournal() {
-  const { addToast } = useAdmin();
-  const [tab, setTab] = useState<'entries' | 'stats'>('entries');
-  const [detailEntry, setDetailEntry] = useState<JournalEntry | null>(null);
+  const { addToast, setActiveTab } = useAdmin();
+  const [results, setResults] = useState<TenderResultRead[]>([]);
+  const [stats, setStats] = useState<WinLossStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [tab, setTab] = useState<'list' | 'stats'>('list');
+  const [detail, setDetail] = useState<TenderResultRead | null>(null);
+  const [filterSource, setFilterSource] = useState('');
 
-  const handleSaveEntry = () => {
-    addToast('Saqlandi', 'Yozuv muvaffaqiyatli saqlandi', 'success');
-    setDetailEntry(null);
-  };
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [list, s] = await Promise.all([winLossApi.list(200), winLossApi.stats()]);
+      setResults(list);
+      setStats(s);
+    } catch {
+      addToast('Xatolik', "Ma'lumot yuklanmadi", 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => { load(); }, []);
+
+  const filtered = results.filter(r => {
+    if (search && !r.winner_name.toLowerCase().includes(search.toLowerCase()) && !(r.tender_title ?? '').toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterSource && (r.tender_source ?? '') !== filterSource) return false;
+    return true;
+  });
+
+  const sources = [...new Set(results.map(r => r.tender_source).filter(Boolean))];
+
+  if (loading) {
+    return (
+      <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+        <RefreshCw size={24} className="animate-spin" style={{ color: 'var(--text-4)' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
       <div className="flex-between mb-24">
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)' }}>Yutish/Yutqazish jurnali</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Tender natijalarini kuzatish</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 800 }}>G'alaba/Mag'lubiyat Jurnali</h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Tender natijalari va g'oliblar — qatorni bosing</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-ghost btn-sm" onClick={load}><RefreshCw size={13} /></button>
+          <button className="btn btn-ghost btn-sm" onClick={() => exportCSV('natijalar.csv', ['Tender', "G'olib", 'STIR', 'Summa', 'Valyuta', 'Manba', 'Sana'], filtered.map(r => [r.tender_title ?? `#${r.tender_id}`, r.winner_name, r.winner_stir ?? '', r.winning_amount ?? '', r.currency ?? '', r.tender_source ?? '', r.created_at]))}>
+            <Download size={13} /> CSV
+          </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid-4 mb-24">
-        <div className="card stat-card" style={{ border: '1px solid var(--border)' }}>
-          <span className="stat-label">Jami tenderlar</span>
-          <div className="stat-value" style={{ marginTop: '8px' }}>{mockEntries.length}</div>
-        </div>
-        <div className="card stat-card" style={{ border: '1px solid var(--border)' }}>
-          <div className="flex-between mb-8">
-            <span className="stat-label">Yutishlar</span>
-            <Trophy size={16} style={{ color: 'var(--green)' }} />
-          </div>
-          <div className="stat-value" style={{ color: 'var(--green)' }}>{wins}</div>
-        </div>
-        <div className="card stat-card" style={{ border: '1px solid var(--border)' }}>
-          <div className="flex-between mb-8">
-            <span className="stat-label">Yutqazishlar</span>
-            <XCircle size={16} style={{ color: 'var(--red)' }} />
-          </div>
-          <div className="stat-value" style={{ color: 'var(--red)' }}>{losses}</div>
-        </div>
-        <div className="card stat-card" style={{ border: '1px solid var(--border)' }}>
-          <div className="flex-between mb-8">
-            <span className="stat-label">Yutish darajasi</span>
-            <TrendingUp size={16} style={{ color: 'var(--primary)' }} />
-          </div>
-          <div className="stat-value">{winRate}%</div>
-        </div>
+      {/* Quick Actions */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        {[
+          { label: 'Analitika', tab: 'analytics', icon: BarChart3, color: 'var(--primary)' },
+          { label: 'Tenderlar', tab: 'tenders', icon: Target, color: 'var(--teal)' },
+          { label: 'Raqobatchilar', tab: 'competitors', icon: Activity, color: 'var(--yellow)' },
+          { label: 'Narx strategiya', tab: 'pricing', icon: DollarSign, color: 'var(--red)' },
+          { label: 'Pipeline', tab: 'pipeline', icon: TrendingUp, color: 'var(--purple)' },
+          { label: 'Hisobotlar', tab: 'reports', icon: FileText, color: 'var(--green)' },
+        ].map(btn => (
+          <button key={btn.label} className="btn btn-ghost btn-sm" onClick={() => setActiveTab?.(btn.tab)}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', borderColor: 'var(--border-1)' }}>
+            <btn.icon size={13} style={{ color: btn.color }} /> {btn.label}
+          </button>
+        ))}
       </div>
 
-      {/* Avg deal size banner */}
-      <div className="card mb-24" style={{ border: '1px solid var(--border)' }}>
-        <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ fontSize: '13px', color: 'var(--text-3)', fontWeight: 600 }}>O'rtacha bitim hajmi:</div>
-          <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary)' }}>{fmtAmount(avgDealSize)} so'm</div>
-        </div>
-      </div>
-
-      <div className="tabs mb-24">
-        <button className={`tab ${tab === 'entries' ? 'active' : ''}`} onClick={() => setTab('entries')}>Yozuvlar</button>
-        <button className={`tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>Statistika</button>
-      </div>
-
-      {tab === 'entries' && (
-        <div className="card" style={{ border: '1px solid var(--border)' }}>
-          <div className="table-wrap">
-            <table className="table" style={{ tableLayout: 'fixed', width: '100%' }}>
-              <colgroup>
-                <col style={{ width: '44px' }} />
-                <col style={{ width: '200px' }} />
-                <col style={{ width: '80px' }} />
-                <col style={{ width: '120px' }} />
-                <col style={{ width: '110px' }} />
-                <col style={{ width: '200px' }} />
-                <col style={{ width: '110px' }} />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th style={tdStyle}>ID</th>
-                  <th style={tdStyle}>Tender</th>
-                  <th style={tdStyle}>Natija</th>
-                  <th style={tdStyle}>Summa</th>
-                  <th style={tdStyle}>Raqobatchi</th>
-                  <th style={tdStyle}>Xulosa</th>
-                  <th style={tdStyle}>Sana</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockEntries.map((entry) => (
-                  <tr
-                    key={entry.id}
-                    style={{ cursor: 'pointer', borderBottom: '1px solid var(--border)' }}
-                    onClick={() => setDetailEntry(entry)}
-                  >
-                    <td style={tdStyle}>{entry.id}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.tender}</td>
-                    <td style={tdStyle}>
-                      <span className={`badge ${entry.result === 'win' ? 'badge-green' : 'badge-red'}`}>
-                        {entry.result === 'win' ? 'Yutdi' : 'Yutqazdi'}
-                      </span>
-                    </td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{fmtAmount(entry.amount)}</td>
-                    <td style={tdStyle}>
-                      <span className="badge badge-blue">{entry.competitor}</span>
-                    </td>
-                    <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-3)', fontSize: '13px' }}>
-                      {entry.lessons}
-                    </td>
-                    <td style={{ ...tdStyle, fontSize: '13px', color: 'var(--text-4)' }}>{formatDate(entry.date)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {stats && (
+        <div className="grid-4 mb-24">
+          {[
+            { label: 'Jami natijalar', value: stats.total_results, color: 'var(--primary)', tab: '' },
+            { label: 'Jami summa', value: fmtMln(stats.total_won_amount), color: 'var(--green)', tab: '' },
+            { label: "O'rtacha g'alaba", value: fmtMln(stats.avg_winning_amount), color: 'var(--teal)', tab: '' },
+            { label: 'Manba turlari', value: stats.by_source.length, color: 'var(--yellow)', tab: '' },
+          ].map(s => (
+            <div key={s.label} className="card stat-card" style={{ cursor: 'pointer' }} onClick={() => setTab(tab === 'stats' ? 'list' : 'stats')}>
+              <div className="stat-label mb-8">{s.label}</div>
+              <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+            </div>
+          ))}
         </div>
       )}
 
-      {tab === 'stats' && (
-        <div className="grid-2" style={{ gap: '24px' }}>
-          <div className="card" style={{ border: '1px solid var(--border)' }}>
-            <div className="card-body">
-              <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-0)' }}>Yutish darajasi dinamikasi</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={winRateOverTime}>
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="rate" stroke="var(--primary)" strokeWidth={2} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
+      <div className="tabs mb-16">
+        <button className={`tab ${tab === 'list' ? 'active' : ''}`} onClick={() => setTab('list')}>
+          <Trophy size={14} /> Natijalar ro'yxati
+        </button>
+        <button className={`tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>
+          <BarChart3 size={14} /> Statistika
+        </button>
+      </div>
+
+      {tab === 'list' && (
+        <>
+          <div className="card mb-16">
+            <div className="card-body" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <input className="input" placeholder="G'olib yoki tender nomi..." value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, minWidth: '200px' }} />
+              {sources.length > 0 && (
+                <select className="input select" style={{ width: '140px' }} value={filterSource} onChange={e => setFilterSource(e.target.value)}>
+                  <option value="">Barcha manbalar</option>
+                  {sources.map(s => <option key={s} value={s!}>{s}</option>)}
+                </select>
+              )}
+              <span style={{ fontSize: '12px', color: 'var(--text-4)', alignSelf: 'center' }}>{filtered.length} ta</span>
             </div>
           </div>
-          <div className="card" style={{ border: '1px solid var(--border)' }}>
-            <div className="card-body">
-              <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-0)' }}>Kategoriya bo'yicha yutishlar</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie data={winsByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={(props: any) => `${props.name}: ${props.value}`}>
-                    {winsByCategory.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+
+          <div style={{ display: 'grid', gridTemplateColumns: detail ? '1fr 380px' : '1fr', gap: '16px' }}>
+            <div className="card">
+              {filtered.length === 0 ? (
+                <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-4)' }}>
+                  <AlertCircle size={40} style={{ marginBottom: '12px', opacity: 0.3 }} />
+                  <p>Hozircha tender natijalari yo'q</p>
+                </div>
+              ) : (
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th style={{ padding: '12px 16px' }}>Tender</th>
+                        <th style={{ padding: '12px 16px' }}>G'olib</th>
+                        <th style={{ padding: '12px 16px' }}>Summa</th>
+                        <th style={{ padding: '12px 16px' }}>Manba</th>
+                        <th style={{ padding: '12px 16px' }}>Sana</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map(r => (
+                        <tr key={r.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', background: detail?.id === r.id ? 'var(--bg-active)' : undefined }} onClick={() => setDetail(detail?.id === r.id ? null : r)}>
+                          <td style={{ padding: '12px 16px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '13px' }}>
+                            {r.tender_title ?? `#${r.tender_id}`}
+                          </td>
+                          <td style={{ padding: '12px 16px', fontWeight: 600, fontSize: '13px' }}>{r.winner_name}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            {r.winning_amount ? (
+                              <span style={{ fontWeight: 600, color: 'var(--green)' }}>
+                                {fmtAmount(r.winning_amount)} {r.currency}
+                              </span>
+                            ) : '—'}
+                          </td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span className="badge badge-purple">{r.tender_source ?? '—'}</span>
+                          </td>
+                          <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-4)' }}>{r.created_at}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
+
+            {detail && (
+              <div className="card" style={{ alignSelf: 'start', position: 'sticky', top: '80px' }}>
+                <div className="card-header flex-between">
+                  <h3 style={{ fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Eye size={14} style={{ color: 'var(--primary)' }} /> Natija tafsilotlari
+                  </h3>
+                  <button className="btn-icon" onClick={() => setDetail(null)}><X size={16} /></button>
+                </div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ padding: '16px', background: 'var(--green-soft)', borderRadius: '10px', textAlign: 'center' }}>
+                    <Trophy size={24} style={{ color: 'var(--green)', marginBottom: '4px' }} />
+                    <div style={{ fontWeight: 800, fontSize: '18px', color: 'var(--green)' }}>
+                      {detail.winning_amount ? `${fmtAmount(detail.winning_amount)} ${detail.currency ?? ''}` : 'Summa ko\'rsatilmagan'}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '4px' }}>G'alaba summasi</div>
+                  </div>
+
+                  {[
+                    { label: 'Tender', value: detail.tender_title ?? `#${detail.tender_id}` },
+                    { label: "G'olib kompaniya", value: detail.winner_name },
+                    { label: 'STIR', value: detail.winner_stir ?? '—' },
+                    { label: 'Manba', value: detail.tender_source ?? '—' },
+                    { label: 'Sana', value: detail.created_at },
+                  ].map(item => (
+                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-0)', borderRadius: '6px', border: '1px solid var(--border-1)' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-4)' }}>{item.label}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-0)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{item.value}</span>
+                    </div>
+                  ))}
+
+                  <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab?.('tenders')}>
+                    <ExternalLink size={13} /> Tenderlar sahifasiga o'tish
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab?.('competitors')}>
+                    <ExternalLink size={13} /> Raqobatchilar sahifasi
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="card" style={{ gridColumn: '1 / -1', border: '1px solid var(--border)' }}>
-            <div className="card-body">
-              <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-0)' }}>Yutqazish sabablari</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={lossReasons}>
-                  <XAxis dataKey="reason" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
+        </>
+      )}
+
+      {tab === 'stats' && stats && (
+        <div className="card">
+          <div className="card-header"><h3 style={{ fontWeight: 700 }}>Manba bo'yicha natijalar</h3></div>
+          {stats.by_source.length === 0 ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-4)', fontSize: '13px' }}>
+              Ma'lumot yo'q
+            </div>
+          ) : (
+            <div className="card-body" style={{ height: '300px', minWidth: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.by_source}>
+                  <XAxis dataKey="source" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="count" fill="var(--red)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="var(--primary)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Detail Modal */}
-      {detailEntry && (
-        <div className="modal-overlay" onClick={() => setDetailEntry(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px' }}>
-            <div className="modal-header">
-              <div style={{ flex: 1, paddingRight: '12px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-0)', marginBottom: '4px' }}>{detailEntry.tender}</h2>
-                <span className={`badge ${detailEntry.result === 'win' ? 'badge-green' : 'badge-red'}`}>
-                  {detailEntry.result === 'win' ? 'G\'alaba' : 'Mag\'lubiyat'}
-                </span>
-              </div>
-              <button className="btn btn-sm btn-ghost" onClick={() => setDetailEntry(null)}><X size={14} /></button>
-            </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="grid-2" style={{ gap: '12px' }}>
-                <div style={{ padding: '14px', background: 'var(--bg-1)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-4)', marginBottom: '4px' }}>Summa</div>
-                  <div style={{ fontWeight: 700, fontSize: '16px', color: detailEntry.result === 'win' ? 'var(--green)' : 'var(--red)' }}>
-                    {fmtAmount(detailEntry.amount)} so'm
-  </div>
-                </div>
-                <div style={{ padding: '14px', background: 'var(--bg-1)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-4)', marginBottom: '4px' }}>Raqobatchi</div>
-                  <span className="badge badge-blue" style={{ fontSize: '13px' }}>{detailEntry.competitor}</span>
-                </div>
-                <div style={{ padding: '14px', background: 'var(--bg-1)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-4)', marginBottom: '4px' }}>Sana</div>
-                  <div style={{ fontWeight: 600, fontSize: '14px' }}>{formatDate(detailEntry.date)}</div>
-                </div>
-                <div style={{ padding: '14px', background: 'var(--bg-1)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-4)', marginBottom: '4px' }}>Yozuv ID</div>
-                  <div style={{ fontWeight: 600, fontSize: '14px', fontFamily: 'monospace' }}>#{detailEntry.id}</div>
-                </div>
-              </div>
-              <div>
-                <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-0)', marginBottom: '10px' }}>Xulosa va saboqlar</h4>
-                <div style={{ background: 'var(--bg-1)', borderRadius: '8px', padding: '16px', fontSize: '14px', color: 'var(--text-2)', lineHeight: '1.7', border: '1px solid var(--border)' }}>
-                  {detailEntry.lessons}
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setDetailEntry(null)}>Yopish</button>
-              <button className="btn btn-primary" onClick={handleSaveEntry}>Tahrirlash</button>
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>

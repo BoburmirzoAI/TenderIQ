@@ -1,242 +1,389 @@
-import { useState } from 'react';
-import { Shield, Users, Lock, Search, Edit3, Plus, Trash2, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Shield, Users, Plus, Trash2, RefreshCw, X, Edit2, Key, ChevronDown, ChevronRight, UserCheck, BarChart3, Target, Building, FileText, CreditCard, Activity } from 'lucide-react';
 import { useAdmin } from '../hooks/useAdmin';
+import { rolesApi, type Role, type Permission, type AdminUser } from '../api/admin';
 
-interface Role {
-  id: number;
-  name: string;
-  label: string;
-  description: string;
-  usersCount: number;
-  permissionsCount: number;
-  color: string;
-}
-
-interface Permission {
-  key: string;
-  label: string;
-  description: string;
-  module: string;
-}
-
-interface UserRole {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-}
-
-const initialRoles: Role[] = [
-  { id: 1, name: 'superadmin', label: 'Super Admin', description: 'Barcha huquqlarga ega — platformani to\'liq boshqaradi', usersCount: 2, permissionsCount: 12, color: 'var(--red)' },
-  { id: 2, name: 'admin', label: 'Admin', description: 'Asosiy boshqaruv huquqlari — foydalanuvchi va tenderlarni boshqaradi', usersCount: 5, permissionsCount: 9, color: 'var(--orange)' },
-  { id: 3, name: 'user', label: 'Foydalanuvchi', description: 'Asosiy funksiyalar — tenderlarni ko\'rish va ariza berish', usersCount: 1200, permissionsCount: 5, color: 'var(--blue)' },
-  { id: 4, name: 'viewer', label: 'Kuzatuvchi', description: 'Faqat ko\'rish huquqi — hech narsa o\'zgartira olmaydi', usersCount: 41, permissionsCount: 2, color: 'var(--text-3)' },
-];
-
-const initialPermissions: Permission[] = [
-  { key: 'manage_users', label: 'Foydalanuvchilarni boshqarish', description: 'Foydalanuvchilarni qo\'shish, tahrirlash, bloklash', module: 'users' },
-  { key: 'manage_tenders', label: 'Tenderlarni boshqarish', description: 'Tenderlarni tahrirlash va o\'chirish', module: 'tenders' },
-  { key: 'manage_payments', label: 'To\'lovlarni boshqarish', description: 'To\'lovlarni ko\'rish va qaytarish', module: 'payments' },
-  { key: 'view_reports', label: 'Hisobotlarni ko\'rish', description: 'Barcha hisobotlarga kirish', module: 'reports' },
-  { key: 'use_ml', label: 'ML dan foydalanish', description: 'AI bashorat funksiyalarini ishlatish', module: 'ml' },
-  { key: 'manage_bot', label: 'Botni boshqarish', description: 'Telegram bot sozlamalarini o\'zgartirish', module: 'bot' },
-  { key: 'manage_settings', label: 'Sozlamalarni boshqarish', description: 'Platforma sozlamalarini o\'zgartirish', module: 'settings' },
-  { key: 'export_data', label: 'Ma\'lumotlarni eksport qilish', description: 'CSV/Excel/PDF eksport', module: 'reports' },
-  { key: 'manage_teams', label: 'Jamoalarni boshqarish', description: 'Jamoa a\'zolarini qo\'shish va o\'chirish', module: 'users' },
-  { key: 'view_analytics', label: 'Analitikani ko\'rish', description: 'Batafsil analitik ma\'lumotlar', module: 'reports' },
-  { key: 'manage_subscriptions', label: 'Obunalarni boshqarish', description: 'Obuna rejalarini o\'zgartirish', module: 'payments' },
-  { key: 'manage_companies', label: 'Kompaniyalarni boshqarish', description: 'Kompaniya profillarini tahrirlash', module: 'tenders' },
-];
-
-const rolePermissions: Record<string, string[]> = {
-  superadmin: initialPermissions.map(p => p.key),
-  admin: ['manage_users', 'manage_tenders', 'manage_payments', 'view_reports', 'use_ml', 'manage_bot', 'export_data', 'view_analytics', 'manage_companies'],
-  user: ['view_reports', 'use_ml', 'export_data', 'view_analytics', 'manage_companies'],
-  viewer: ['view_reports', 'view_analytics'],
+const RESOURCE_COLORS: Record<string, string> = {
+  users: 'var(--primary)', tenders: 'var(--teal)', companies: 'var(--purple)',
+  financials: 'var(--green)', notifications: 'var(--yellow)', analytics: 'var(--primary)',
+  audit_log: 'var(--text-3)', settings: 'var(--red)', roles: 'var(--purple)', health: 'var(--teal)',
 };
 
-const mockUserRoles: UserRole[] = [
-  { id: 1, name: 'Bobur Sobirjonov', email: 'bobur@mail.uz', role: 'superadmin' },
-  { id: 2, name: 'Jasur Karimov', email: 'jasur@mail.uz', role: 'admin' },
-  { id: 3, name: 'Dilnoza Rahimova', email: 'dilnoza@mail.uz', role: 'user' },
-  { id: 4, name: 'Aziz Toshmatov', email: 'aziz@mail.uz', role: 'admin' },
-  { id: 5, name: 'Nodira Yusupova', email: 'nodira@mail.uz', role: 'user' },
-  { id: 6, name: 'Sherzod Umarov', email: 'sherzod@mail.uz', role: 'admin' },
-  { id: 7, name: 'Malika Nurmatova', email: 'malika@mail.uz', role: 'viewer' },
-  { id: 8, name: 'Otabek Mirzayev', email: 'otabek@mail.uz', role: 'user' },
-  { id: 9, name: 'Sardor Aliyev', email: 'sardor@mail.uz', role: 'superadmin' },
-  { id: 10, name: 'Kamola Tursunova', email: 'kamola@mail.uz', role: 'viewer' },
-];
-
-const modules = ['users', 'tenders', 'payments', 'reports', 'ml', 'bot', 'settings'];
-const moduleLabels: Record<string, string> = {
-  users: 'Foydalanuvchilar', tenders: 'Tenderlar', payments: 'To\'lovlar',
-  reports: 'Hisobotlar', ml: 'ML / AI', bot: 'Telegram Bot', settings: 'Sozlamalar',
+const ACTION_LABELS: Record<string, string> = {
+  view: 'Ko\'rish', edit: 'Tahrirlash', delete: 'O\'chirish',
+  manage: 'Boshqarish', send: 'Yuborish', message: 'Xabar',
 };
 
-const roleBadge = (role: string) => {
-  const cls = role === 'superadmin' ? 'badge-red' : role === 'admin' ? 'badge-yellow' : role === 'user' ? 'badge-blue' : 'badge-primary';
-  return <span className={`badge ${cls}`}>{role}</span>;
-};
+type Tab = 'roles' | 'permissions' | 'users';
 
-export default function RolesPermissions() {
-  const { addToast } = useAdmin();
-  const [tab, setTab] = useState<'roles' | 'permissions' | 'user-roles'>('roles');
-  const [roles, setRoles] = useState<Role[]>(initialRoles);
-  const [permissions, setPermissions] = useState<Permission[]>(initialPermissions);
-  const [editRole, setEditRole] = useState<Role | null>(null);
-  const [permRole, setPermRole] = useState('admin');
-  const [perms, setPerms] = useState<Record<string, string[]>>(rolePermissions);
-  const [userRoles, setUserRoles] = useState(mockUserRoles);
-  const [search, setSearch] = useState('');
+export default function RolesPermissionsPage() {
+  const { addToast, setActiveTab } = useAdmin();
+  const [tab, setTab] = useState<Tab>('roles');
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedRole, setExpandedRole] = useState<number | null>(null);
 
-  // New role modal
-  const [showNewRole, setShowNewRole] = useState(false);
-  const [newRoleName, setNewRoleName] = useState('');
-  const [newRoleLabel, setNewRoleLabel] = useState('');
-  const [newRoleDesc, setNewRoleDesc] = useState('');
-  const [newRolePerms, setNewRolePerms] = useState<string[]>([]);
+  // Role modal
+  const [roleModal, setRoleModal] = useState<{ open: boolean; role?: Role }>({ open: false });
+  const [roleName, setRoleName] = useState('');
+  const [roleDesc, setRoleDesc] = useState('');
+  const [selectedPerms, setSelectedPerms] = useState<Set<number>>(new Set());
+  const [saving, setSaving] = useState(false);
 
-  // New permission modal
-  const [showNewPerm, setShowNewPerm] = useState(false);
-  const [newPermKey, setNewPermKey] = useState('');
-  const [newPermLabel, setNewPermLabel] = useState('');
-  const [newPermDesc, setNewPermDesc] = useState('');
-  const [newPermModule, setNewPermModule] = useState('users');
+  // Permission modal
+  const [permModal, setPermModal] = useState(false);
+  const [permName, setPermName] = useState('');
+  const [permResource, setPermResource] = useState('');
+  const [permAction, setPermAction] = useState('');
+  const [permDesc, setPermDesc] = useState('');
 
-  const togglePerm = (permKey: string) => {
-    setPerms(prev => {
-      const current = prev[permRole] || [];
-      const updated = current.includes(permKey) ? current.filter(k => k !== permKey) : [...current, permKey];
-      return { ...prev, [permRole]: updated };
+  // Promote modal
+  const [promoteModal, setPromoteModal] = useState(false);
+  const [promoteEmail, setPromoteEmail] = useState('');
+  const [promoteReason, setPromoteReason] = useState('');
+
+  // User-role assign modal
+  const [assignModal, setAssignModal] = useState<{ open: boolean; user?: AdminUser }>({ open: false });
+  const [assignedRoles, setAssignedRoles] = useState<Set<number>>(new Set());
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [r, p, a] = await Promise.all([
+        rolesApi.list(),
+        rolesApi.listPermissions(),
+        rolesApi.listAdmins(),
+      ]);
+      setRoles(r);
+      setPermissions(p);
+      setAdmins(a);
+    } catch { addToast('Xatolik', 'Ma\'lumotlarni yuklashda xato', 'error'); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Group permissions by resource
+  const permByResource = permissions.reduce<Record<string, Permission[]>>((acc, p) => {
+    (acc[p.resource] = acc[p.resource] || []).push(p);
+    return acc;
+  }, {});
+
+  // ── Role modal handlers ──
+  const openCreateRole = () => {
+    setRoleName(''); setRoleDesc(''); setSelectedPerms(new Set());
+    setRoleModal({ open: true });
+  };
+  const openEditRole = (role: Role) => {
+    setRoleName(role.name); setRoleDesc(role.description || '');
+    setSelectedPerms(new Set(role.permissions.map(p => p.id)));
+    setRoleModal({ open: true, role });
+  };
+  const closeRoleModal = () => setRoleModal({ open: false });
+
+  const saveRole = async () => {
+    if (!roleName.trim()) return;
+    setSaving(true);
+    try {
+      const payload = { name: roleName.trim(), description: roleDesc, permission_ids: Array.from(selectedPerms) };
+      if (roleModal.role) {
+        const updated = await rolesApi.update(roleModal.role.id, payload);
+        setRoles(prev => prev.map(r => r.id === roleModal.role!.id ? updated : r));
+        addToast('Yangilandi', `"${updated.name}" roli yangilandi`, 'success');
+      } else {
+        const created = await rolesApi.create(payload);
+        setRoles(prev => [...prev, created]);
+        addToast('Yaratildi', `"${created.name}" roli yaratildi`, 'success');
+      }
+      closeRoleModal();
+    } catch (err: any) {
+      addToast('Xatolik', err?.response?.data?.detail || 'Saqlashda xato', 'error');
+    } finally { setSaving(false); }
+  };
+
+  const deleteRole = async (role: Role) => {
+    if (!confirm(`"${role.name}" rolini o'chirasizmi?`)) return;
+    try {
+      await rolesApi.delete(role.id);
+      setRoles(prev => prev.filter(r => r.id !== role.id));
+      addToast('O\'chirildi', `"${role.name}" o'chirildi`, 'info');
+    } catch (err: any) {
+      addToast('Xatolik', err?.response?.data?.detail || 'O\'chirishda xato', 'error');
+    }
+  };
+
+  const togglePerm = (id: number) => {
+    setSelectedPerms(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
     });
-    addToast('Ruxsat', `${permKey} — ${permRole} uchun o'zgartirildi`, 'info');
   };
 
-  const changeUserRole = (userId: number, newRole: string) => {
-    setUserRoles(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-    addToast('Rol o\'zgartirildi', `Foydalanuvchi roli ${newRole} ga o'zgartirildi`, 'success');
+  const toggleAllResource = (resource: string, perms: Permission[]) => {
+    const ids = perms.map(p => p.id);
+    const allSelected = ids.every(id => selectedPerms.has(id));
+    setSelectedPerms(prev => {
+      const next = new Set(prev);
+      ids.forEach(id => allSelected ? next.delete(id) : next.add(id));
+      return next;
+    });
   };
 
-  const filteredUsers = userRoles.filter(u =>
-    !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
+  // ── Permission modal handlers ──
+  const createPermission = async () => {
+    if (!permName.trim() || !permResource.trim() || !permAction.trim()) return;
+    setSaving(true);
+    try {
+      const p = await rolesApi.createPermission({ name: permName, resource: permResource, action: permAction, description: permDesc });
+      setPermissions(prev => [...prev, p]);
+      addToast('Yaratildi', `"${p.name}" permission yaratildi`, 'success');
+      setPermModal(false); setPermName(''); setPermResource(''); setPermAction(''); setPermDesc('');
+    } catch (err: any) {
+      addToast('Xatolik', err?.response?.data?.detail || 'Xato', 'error');
+    } finally { setSaving(false); }
+  };
+
+  const deletePermission = async (p: Permission) => {
+    if (p.is_system) return addToast('Xato', 'Tizim permissionlarini o\'chirish mumkin emas', 'error');
+    if (!confirm(`"${p.name}" permission o'chirilsinmi?`)) return;
+    try {
+      await rolesApi.deletePermission(p.id);
+      setPermissions(prev => prev.filter(x => x.id !== p.id));
+      addToast('O\'chirildi', `"${p.name}" o'chirildi`, 'info');
+    } catch (err: any) {
+      addToast('Xatolik', err?.response?.data?.detail || 'Xato', 'error');
+    }
+  };
+
+  // ── Admin promote/demote ──
+  const promote = async () => {
+    if (!promoteEmail.trim()) return;
+    setSaving(true);
+    try {
+      await rolesApi.promote(promoteEmail, promoteReason);
+      addToast('Tayinlandi', `${promoteEmail} ga admin huquqi berildi`, 'success');
+      setPromoteModal(false); setPromoteEmail(''); setPromoteReason('');
+      fetchAll();
+    } catch (err: any) {
+      addToast('Xatolik', err?.response?.data?.detail || 'Xato', 'error');
+    } finally { setSaving(false); }
+  };
+
+  const demote = async (user: AdminUser) => {
+    if (!confirm(`${user.full_name} dan admin huquqini olishni tasdiqlaysizmi?`)) return;
+    try {
+      await rolesApi.demote(user.id);
+      setAdmins(prev => prev.filter(a => a.id !== user.id));
+      addToast('Olib tashlandi', `${user.full_name} admin emas`, 'info');
+    } catch (err: any) {
+      addToast('Xatolik', err?.response?.data?.detail || 'Xato', 'error');
+    }
+  };
+
+  // ── User-role assign ──
+  const openAssignModal = async (user: AdminUser) => {
+    try {
+      const userRoles = await rolesApi.getUserRoles(user.id);
+      setAssignedRoles(new Set(userRoles.map(r => r.id)));
+      setAssignModal({ open: true, user });
+    } catch { addToast('Xatolik', 'Rollarni yuklashda xato', 'error'); }
+  };
+
+  const saveAssignRoles = async () => {
+    if (!assignModal.user) return;
+    setSaving(true);
+    try {
+      await rolesApi.assignUserRoles(assignModal.user.id, Array.from(assignedRoles));
+      addToast('Saqlandi', `${assignModal.user.full_name} rollari yangilandi`, 'success');
+      setAssignModal({ open: false });
+    } catch (err: any) {
+      addToast('Xatolik', err?.response?.data?.detail || 'Xato', 'error');
+    } finally { setSaving(false); }
+  };
+
+  if (loading) return (
+    <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+      <RefreshCw size={24} className="animate-spin" style={{ color: 'var(--text-3)' }} />
+    </div>
   );
-
-  const handleDeleteRole = (role: Role) => {
-    setRoles(prev => prev.filter(r => r.id !== role.id));
-    addToast('O\'chirildi', `${role.label} roli o'chirildi`, 'info');
-  };
-
-  const handleSaveNewRole = () => {
-    if (!newRoleName.trim() || !newRoleLabel.trim()) return;
-    const newRole: Role = {
-      id: Date.now(),
-      name: newRoleName.trim().toLowerCase().replace(/\s+/g, '_'),
-      label: newRoleLabel.trim(),
-      description: newRoleDesc.trim(),
-      usersCount: 0,
-      permissionsCount: newRolePerms.length,
-      color: 'var(--primary)',
-    };
-    setRoles(prev => [...prev, newRole]);
-    setPerms(prev => ({ ...prev, [newRole.name]: newRolePerms }));
-    setShowNewRole(false);
-    setNewRoleName('');
-    setNewRoleLabel('');
-    setNewRoleDesc('');
-    setNewRolePerms([]);
-    addToast('Rol qo\'shildi', `${newRole.label} roli muvaffaqiyatli yaratildi`, 'success');
-  };
-
-  const handleSaveNewPerm = () => {
-    if (!newPermKey.trim() || !newPermLabel.trim()) return;
-    const newPerm: Permission = {
-      key: newPermKey.trim().toLowerCase().replace(/\s+/g, '_'),
-      label: newPermLabel.trim(),
-      description: newPermDesc.trim(),
-      module: newPermModule,
-    };
-    setPermissions(prev => [...prev, newPerm]);
-    setShowNewPerm(false);
-    setNewPermKey('');
-    setNewPermLabel('');
-    setNewPermDesc('');
-    setNewPermModule('users');
-    addToast('Ruxsat qo\'shildi', `${newPerm.label} ruxsati muvaffaqiyatli yaratildi`, 'success');
-  };
-
-  const toggleNewRolePerm = (key: string) => {
-    setNewRolePerms(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
-  };
 
   return (
     <div className="page-container">
       <div className="flex-between mb-24">
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)' }}>Rollar va Ruxsatnomalar</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Foydalanuvchi rollari va huquqlarini boshqaring</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)' }}>Rollar va huquqlar</h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>
+            {roles.length} rol · {permissions.length} permission · {admins.length} admin
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          {tab === 'roles' && (
-            <button className="btn btn-primary btn-sm" onClick={() => setShowNewRole(true)}>
-              <Plus size={14} /> Yangi role
-            </button>
-          )}
-          {tab === 'permissions' && (
-            <button className="btn btn-primary btn-sm" onClick={() => setShowNewPerm(true)}>
-              <Plus size={14} /> Yangi permission
-            </button>
-          )}
+          {tab === 'roles' && <button className="btn btn-primary btn-sm" onClick={openCreateRole}><Plus size={14} /> Rol qo'shish</button>}
+          {tab === 'permissions' && <button className="btn btn-primary btn-sm" onClick={() => setPermModal(true)}><Plus size={14} /> Permission qo'shish</button>}
+          {tab === 'users' && <button className="btn btn-primary btn-sm" onClick={() => setPromoteModal(true)}><Plus size={14} /> Admin qo'shish</button>}
         </div>
       </div>
 
-      <div className="tabs mb-24">
-        <button className={`tab ${tab === 'roles' ? 'active' : ''}`} onClick={() => setTab('roles')}>
-          <Shield size={14} /> Rollar
-        </button>
-        <button className={`tab ${tab === 'permissions' ? 'active' : ''}`} onClick={() => setTab('permissions')}>
-          <Lock size={14} /> Ruxsatnomalar
-        </button>
-        <button className={`tab ${tab === 'user-roles' ? 'active' : ''}`} onClick={() => setTab('user-roles')}>
-          <Users size={14} /> Foydalanuvchi rollari
-        </button>
+      {/* Quick Actions */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        {[
+          { label: 'Foydalanuvchilar', tab: 'users', icon: Users, color: 'var(--primary)' },
+          { label: 'Kompaniyalar', tab: 'companies', icon: Building, color: 'var(--teal)' },
+          { label: 'Jamoalar', tab: 'teams', icon: Users, color: 'var(--green)' },
+          { label: 'Audit Log', tab: 'audit_log', icon: Activity, color: 'var(--yellow)' },
+          { label: 'Analitika', tab: 'analytics', icon: BarChart3, color: 'var(--purple)' },
+          { label: 'Hisobotlar', tab: 'reports', icon: FileText, color: 'var(--red)' },
+        ].map(btn => (
+          <button key={btn.label} className="btn btn-ghost btn-sm" onClick={() => setActiveTab?.(btn.tab)}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', borderColor: 'var(--border-1)' }}>
+            <btn.icon size={13} style={{ color: btn.color }} /> {btn.label}
+          </button>
+        ))}
       </div>
 
+      {/* Tabs */}
+      <div className="card mb-16" style={{ padding: 0 }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border-1)' }}>
+          {([['roles', `Rollar (${roles.length})`, Shield], ['permissions', `Permissionlar (${permissions.length})`, Key], ['users', `Adminlar (${admins.length})`, Users]] as const).map(([t, label, Icon]) => (
+            <button key={t} onClick={() => setTab(t as Tab)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '12px 20px', fontSize: '13px', fontWeight: tab === t ? 700 : 500, color: tab === t ? 'var(--primary)' : 'var(--text-3)', borderBottom: tab === t ? '2px solid var(--primary)' : '2px solid transparent', background: 'none', cursor: 'pointer' }}>
+              <Icon size={14} />{label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── ROLES TAB ── */}
       {tab === 'roles' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {roles.map(role => (
+            <div key={role.id} className="card" style={{ border: role.is_system ? '1px solid var(--primary)30' : '1px solid var(--border-1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', cursor: 'pointer' }}
+                onClick={() => setExpandedRole(expandedRole === role.id ? null : role.id)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Shield size={16} style={{ color: 'var(--primary)' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-0)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {role.name}
+                      {role.is_system && <span className="badge badge-primary" style={{ fontSize: '10px' }}>Tizim</span>}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{role.description}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>{role.permissions.length} permission · {role.user_count} foydalanuvchi</span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button className="btn-icon" onClick={e => { e.stopPropagation(); openEditRole(role); }} title="Tahrirlash">
+                      <Edit2 size={14} style={{ color: 'var(--primary)' }} />
+                    </button>
+                    {!role.is_system && (
+                      <button className="btn-icon" onClick={e => { e.stopPropagation(); deleteRole(role); }} title="O'chirish">
+                        <Trash2 size={14} style={{ color: 'var(--red)' }} />
+                      </button>
+                    )}
+                  </div>
+                  {expandedRole === role.id ? <ChevronDown size={16} style={{ color: 'var(--text-3)' }} /> : <ChevronRight size={16} style={{ color: 'var(--text-3)' }} />}
+                </div>
+              </div>
+              {expandedRole === role.id && (
+                <div style={{ padding: '0 20px 16px', borderTop: '1px solid var(--border-1)', paddingTop: '12px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {role.permissions.length === 0
+                      ? <span style={{ fontSize: '12px', color: 'var(--text-4)' }}>Permission yo'q</span>
+                      : role.permissions.map(p => (
+                        <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: `${RESOURCE_COLORS[p.resource] || 'var(--primary)'}18`, color: RESOURCE_COLORS[p.resource] || 'var(--primary)', border: `1px solid ${RESOURCE_COLORS[p.resource] || 'var(--primary)'}30` }}>
+                          {p.resource}.{p.action}
+                        </span>
+                      ))
+                    }
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── PERMISSIONS TAB ── */}
+      {tab === 'permissions' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {Object.entries(permByResource).map(([resource, perms]) => (
+            <div key={resource} className="card">
+              <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 700, color: RESOURCE_COLORS[resource] || 'var(--text-0)', textTransform: 'capitalize' }}>
+                  {resource} <span style={{ color: 'var(--text-3)', fontWeight: 400, fontSize: '12px' }}>({perms.length})</span>
+                </span>
+              </div>
+              <div className="table-wrap">
+                <table className="table">
+                  <thead><tr><th>Nom</th><th>Amal</th><th>Tavsif</th><th>Tur</th><th></th></tr></thead>
+                  <tbody>
+                    {perms.map(p => (
+                      <tr key={p.id}>
+                        <td style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-0)', fontWeight: 600 }}>{p.name}</td>
+                        <td><span className="badge badge-primary">{ACTION_LABELS[p.action] || p.action}</span></td>
+                        <td style={{ color: 'var(--text-2)', fontSize: '12px' }}>{p.description || '—'}</td>
+                        <td>{p.is_system ? <span className="badge badge-yellow">Tizim</span> : <span className="badge badge-primary">Custom</span>}</td>
+                        <td>
+                          {!p.is_system && (
+                            <button className="btn-icon" onClick={() => deletePermission(p)}>
+                              <Trash2 size={14} style={{ color: 'var(--red)' }} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── USERS TAB ── */}
+      {tab === 'users' && (
         <div className="card">
-          <div className="card-header"><h3>Rollar</h3></div>
           <div className="table-wrap">
             <table className="table">
-              <thead>
-                <tr>
-                  <th>Rol nomi</th>
-                  <th>Tavsif</th>
-                  <th>Foydalanuvchilar</th>
-                  <th>Ruxsatlar soni</th>
-                  <th>Amallar</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Foydalanuvchi</th><th>Daraja</th><th>Holat</th><th>Ro'yxatdan</th><th>Amallar</th></tr></thead>
               <tbody>
-                {roles.map(role => (
-                  <tr key={role.id}>
+                {admins.length === 0 ? (
+                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-4)' }}>Adminlar yo'q</td></tr>
+                ) : admins.map(a => (
+                  <tr key={a.id}>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: role.color }} />
-                        <strong>{role.label}</strong>
-                        <span style={{ fontSize: '11px', color: 'var(--text-4)' }}>({role.name})</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'var(--primary)' }}>
+                          {a.full_name.charAt(0)}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-0)' }}>{a.full_name}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{a.email}</div>
+                        </div>
                       </div>
                     </td>
-                    <td style={{ fontSize: '13px', color: 'var(--text-3)' }}>{role.description}</td>
-                    <td><span className="badge badge-blue">{role.usersCount}</span></td>
-                    <td><span className="badge badge-green">{role.permissionsCount}</span></td>
                     <td>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button className="btn btn-sm" onClick={() => setEditRole(role)}>
-                          <Edit3 size={13} /> Tahrirlash
+                      {a.is_superadmin
+                        ? <span className="badge badge-purple"><Shield size={10} /> SuperAdmin</span>
+                        : <span className="badge badge-primary"><Users size={10} /> Admin</span>}
+                    </td>
+                    <td>{a.is_active ? <span className="badge badge-green">Faol</span> : <span className="badge badge-red">Nofaol</span>}</td>
+                    <td style={{ color: 'var(--text-3)', fontSize: '12px' }}>{new Date(a.created_at).toLocaleDateString('uz')}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button className="btn-icon" title="Rollarni tayinlash" onClick={() => openAssignModal(a)}>
+                          <UserCheck size={14} style={{ color: 'var(--primary)' }} />
                         </button>
-                        <button className="btn btn-sm btn-danger" onClick={() => handleDeleteRole(role)}>
-                          <Trash2 size={13} />
-                        </button>
+                        {!a.is_superadmin && (
+                          <button className="btn-icon" title="Admin huquqini olish" onClick={() => demote(a)}>
+                            <Trash2 size={14} style={{ color: 'var(--red)' }} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -247,204 +394,158 @@ export default function RolesPermissions() {
         </div>
       )}
 
-      {tab === 'permissions' && (
-        <>
-          <div className="card mb-24">
-            <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 600 }}>Rol tanlang:</span>
-              <select className="input select" style={{ width: '200px' }} value={permRole} onChange={e => setPermRole(e.target.value)}>
-                {roles.map(r => <option key={r.name} value={r.name}>{r.label}</option>)}
-              </select>
-              <span style={{ fontSize: '12px', color: 'var(--text-4)' }}>
-                {(perms[permRole] || []).length} / {permissions.length} ruxsat faol
-              </span>
+      {/* ── ROLE CREATE/EDIT MODAL ── */}
+      {roleModal.open && (
+        <div className="modal-overlay" onClick={closeRoleModal}>
+          <div className="modal" style={{ maxWidth: '600px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 700, color: 'var(--text-0)' }}>
+                {roleModal.role ? `"${roleModal.role.name}" ni tahrirlash` : 'Yangi rol yaratish'}
+              </h3>
+              <button className="btn-icon" onClick={closeRoleModal}><X size={18} /></button>
             </div>
-          </div>
-
-          {modules.map(mod => {
-            const modPerms = permissions.filter(p => p.module === mod);
-            if (modPerms.length === 0) return null;
-            return (
-              <div key={mod} className="mb-24">
-                <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-2)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {moduleLabels[mod] || mod}
-                </h3>
-                <div className="grid-3">
-                  {modPerms.map(perm => {
-                    const enabled = (perms[permRole] || []).includes(perm.key);
+            <div className="modal-body" style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="input-group">
+                <label className="input-label">Rol nomi <span style={{ color: 'var(--red)' }}>*</span></label>
+                <input className="input" placeholder="moderator" value={roleName}
+                  onChange={e => setRoleName(e.target.value)}
+                  disabled={roleModal.role?.is_system} />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Tavsif</label>
+                <input className="input" placeholder="Rol tavsifi..." value={roleDesc} onChange={e => setRoleDesc(e.target.value)} />
+              </div>
+              <div>
+                <label className="input-label" style={{ marginBottom: '10px', display: 'block' }}>
+                  Permissionlar — <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{selectedPerms.size}</span> ta tanlangan
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {Object.entries(permByResource).map(([resource, perms]) => {
+                    const allSelected = perms.every(p => selectedPerms.has(p.id));
+                    const someSelected = perms.some(p => selectedPerms.has(p.id));
                     return (
-                      <div key={perm.key} className="card" style={{ cursor: 'pointer' }} onClick={() => togglePerm(perm.key)}>
-                        <div className="card-body">
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <strong style={{ fontSize: '13px' }}>{perm.label}</strong>
-                            <div className={`toggle ${enabled ? 'active' : ''}`} />
-                          </div>
-                          <p style={{ fontSize: '12px', color: 'var(--text-4)', margin: 0 }}>{perm.description}</p>
-                          <div style={{ marginTop: '8px' }}>
-                            <span style={{ fontSize: '11px', color: 'var(--text-4)', fontFamily: 'monospace' }}>{perm.key}</span>
-                          </div>
+                      <div key={resource} style={{ border: '1px solid var(--border-1)', borderRadius: '8px', overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--bg-1)', borderBottom: someSelected ? '1px solid var(--border-1)' : 'none' }}>
+                          <input type="checkbox" checked={allSelected} ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                            onChange={() => toggleAllResource(resource, perms)} style={{ cursor: 'pointer' }} />
+                          <span style={{ fontWeight: 700, fontSize: '12px', color: RESOURCE_COLORS[resource] || 'var(--text-0)', textTransform: 'capitalize' }}>{resource}</span>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '10px 12px' }}>
+                          {perms.map(p => (
+                            <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', background: selectedPerms.has(p.id) ? `${RESOURCE_COLORS[p.resource] || 'var(--primary)'}18` : 'var(--bg-0)', border: `1px solid ${selectedPerms.has(p.id) ? (RESOURCE_COLORS[p.resource] || 'var(--primary)') : 'var(--border-1)'}`, fontSize: '12px', fontWeight: selectedPerms.has(p.id) ? 600 : 400, color: selectedPerms.has(p.id) ? (RESOURCE_COLORS[p.resource] || 'var(--primary)') : 'var(--text-2)', transition: 'all 0.15s' }}>
+                              <input type="checkbox" checked={selectedPerms.has(p.id)} onChange={() => togglePerm(p.id)} style={{ display: 'none' }} />
+                              {ACTION_LABELS[p.action] || p.action}
+                            </label>
+                          ))}
                         </div>
                       </div>
                     );
                   })}
                 </div>
               </div>
-            );
-          })}
-        </>
-      )}
-
-      {tab === 'user-roles' && (
-        <div className="card">
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3>Foydalanuvchi rollari</h3>
-            <div style={{ position: 'relative', width: '250px' }}>
-              <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
-              <input className="input" placeholder="Qidirish..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '36px' }} />
-            </div>
-          </div>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Ism</th>
-                  <th>Email</th>
-                  <th>Joriy rol</th>
-                  <th>Rolni o'zgartirish</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map(user => (
-                  <tr key={user.id}>
-                    <td>#{user.id}</td>
-                    <td><strong>{user.name}</strong></td>
-                    <td style={{ color: 'var(--text-3)' }}>{user.email}</td>
-                    <td>{roleBadge(user.role)}</td>
-                    <td>
-                      <select
-                        className="input select"
-                        style={{ width: '160px' }}
-                        value={user.role}
-                        onChange={e => changeUserRole(user.id, e.target.value)}
-                      >
-                        {roles.map(r => <option key={r.name} value={r.name}>{r.label}</option>)}
-                      </select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Role Modal */}
-      {editRole && (
-        <div className="modal-overlay" onClick={() => setEditRole(null)}>
-          <div className="modal" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 style={{ fontWeight: 700 }}>Rolni tahrirlash</h3>
-              <button className="btn-icon" onClick={() => setEditRole(null)}><X size={18} /></button>
-            </div>
-            <div className="modal-body">
-              <div className="input-group">
-                <label className="input-label">Rol nomi (label)</label>
-                <input className="input" defaultValue={editRole.label} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Tavsif</label>
-                <input className="input" defaultValue={editRole.description} />
-              </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setEditRole(null)}>Bekor qilish</button>
-              <button className="btn btn-primary" onClick={() => { setEditRole(null); addToast('Saqlandi', `${editRole.label} roli yangilandi`, 'success'); }}>
-                Saqlash
+              <button className="btn btn-ghost" onClick={closeRoleModal}>Bekor qilish</button>
+              <button className="btn btn-primary" disabled={!roleName.trim() || saving} onClick={saveRole}>
+                {saving ? <><RefreshCw size={13} className="animate-spin" /> Saqlanmoqda...</> : <><Shield size={13} /> Saqlash</>}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* New Role Modal */}
-      {showNewRole && (
-        <div className="modal-overlay" onClick={() => setShowNewRole(false)}>
-          <div className="modal" style={{ maxWidth: '540px' }} onClick={e => e.stopPropagation()}>
+      {/* ── PERMISSION CREATE MODAL ── */}
+      {permModal && (
+        <div className="modal-overlay" onClick={() => setPermModal(false)}>
+          <div className="modal" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontWeight: 700 }}>Yangi rol yaratish</h3>
-              <button className="btn-icon" onClick={() => setShowNewRole(false)}><X size={18} /></button>
+              <h3 style={{ fontWeight: 700, color: 'var(--text-0)' }}>Yangi permission</h3>
+              <button className="btn-icon" onClick={() => setPermModal(false)}><X size={18} /></button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div className="input-group">
-                <label className="input-label">Rol kodi (name)</label>
-                <input className="input" placeholder="masalan: moderator" value={newRoleName} onChange={e => setNewRoleName(e.target.value)} />
+                <label className="input-label">Nom <span style={{ color: 'var(--red)' }}>*</span> <span style={{ color: 'var(--text-3)', fontSize: '11px' }}>(masalan: reports.export)</span></label>
+                <input className="input" placeholder="resource.action" value={permName} onChange={e => setPermName(e.target.value)} />
               </div>
-              <div className="input-group">
-                <label className="input-label">Rol nomi (label)</label>
-                <input className="input" placeholder="masalan: Moderator" value={newRoleLabel} onChange={e => setNewRoleLabel(e.target.value)} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="input-group">
+                  <label className="input-label">Resurs <span style={{ color: 'var(--red)' }}>*</span></label>
+                  <input className="input" placeholder="reports" value={permResource} onChange={e => setPermResource(e.target.value)} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Amal <span style={{ color: 'var(--red)' }}>*</span></label>
+                  <input className="input" placeholder="export" value={permAction} onChange={e => setPermAction(e.target.value)} />
+                </div>
               </div>
               <div className="input-group">
                 <label className="input-label">Tavsif</label>
-                <input className="input" placeholder="Rol haqida qisqacha..." value={newRoleDesc} onChange={e => setNewRoleDesc(e.target.value)} />
-              </div>
-              <div>
-                <label className="input-label" style={{ display: 'block', marginBottom: '10px' }}>Ruxsatlar</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
-                  {permissions.map(p => (
-                    <label key={p.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={newRolePerms.includes(p.key)}
-                        onChange={() => toggleNewRolePerm(p.key)}
-                        style={{ width: '14px', height: '14px' }}
-                      />
-                      <span style={{ color: 'var(--text-1)' }}>{p.label}</span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-4)', fontFamily: 'monospace' }}>({p.key})</span>
-                    </label>
-                  ))}
-                </div>
+                <input className="input" placeholder="Permission tavsifi..." value={permDesc} onChange={e => setPermDesc(e.target.value)} />
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setShowNewRole(false)}>Bekor qilish</button>
-              <button className="btn btn-primary" onClick={handleSaveNewRole}>Saqlash</button>
+              <button className="btn btn-ghost" onClick={() => setPermModal(false)}>Bekor qilish</button>
+              <button className="btn btn-primary" disabled={!permName.trim() || !permResource.trim() || !permAction.trim() || saving} onClick={createPermission}>
+                {saving ? <><RefreshCw size={13} className="animate-spin" /> Yaratilmoqda...</> : <><Key size={13} /> Yaratish</>}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* New Permission Modal */}
-      {showNewPerm && (
-        <div className="modal-overlay" onClick={() => setShowNewPerm(false)}>
-          <div className="modal" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+      {/* ── PROMOTE MODAL ── */}
+      {promoteModal && (
+        <div className="modal-overlay" onClick={() => setPromoteModal(false)}>
+          <div className="modal" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontWeight: 700 }}>Yangi ruxsat yaratish</h3>
-              <button className="btn-icon" onClick={() => setShowNewPerm(false)}><X size={18} /></button>
+              <h3 style={{ fontWeight: 700, color: 'var(--text-0)' }}>Admin tayinlash</h3>
+              <button className="btn-icon" onClick={() => setPromoteModal(false)}><X size={18} /></button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div className="input-group">
-                <label className="input-label">Ruxsat kodi (key)</label>
-                <input className="input" placeholder="masalan: view_dashboard" value={newPermKey} onChange={e => setNewPermKey(e.target.value)} />
+                <label className="input-label">Email <span style={{ color: 'var(--red)' }}>*</span></label>
+                <input className="input" type="email" placeholder="user@example.com" value={promoteEmail} onChange={e => setPromoteEmail(e.target.value)} />
               </div>
               <div className="input-group">
-                <label className="input-label">Nomi</label>
-                <input className="input" placeholder="masalan: Dashboardni ko'rish" value={newPermLabel} onChange={e => setNewPermLabel(e.target.value)} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Tavsif</label>
-                <input className="input" placeholder="Ruxsat haqida qisqacha..." value={newPermDesc} onChange={e => setNewPermDesc(e.target.value)} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Modul</label>
-                <select className="input select" value={newPermModule} onChange={e => setNewPermModule(e.target.value)}>
-                  {modules.map(m => <option key={m} value={m}>{moduleLabels[m]}</option>)}
-                </select>
+                <label className="input-label">Sabab</label>
+                <input className="input" placeholder="Tayinlash sababi..." value={promoteReason} onChange={e => setPromoteReason(e.target.value)} />
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setShowNewPerm(false)}>Bekor qilish</button>
-              <button className="btn btn-primary" onClick={handleSaveNewPerm}>Saqlash</button>
+              <button className="btn btn-ghost" onClick={() => setPromoteModal(false)}>Bekor qilish</button>
+              <button className="btn btn-primary" disabled={!promoteEmail.trim() || saving} onClick={promote}>
+                {saving ? <><RefreshCw size={13} className="animate-spin" /> Tayinlanmoqda...</> : <><Shield size={13} /> Tayinlash</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ASSIGN ROLES MODAL ── */}
+      {assignModal.open && assignModal.user && (
+        <div className="modal-overlay" onClick={() => setAssignModal({ open: false })}>
+          <div className="modal" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 700, color: 'var(--text-0)' }}>{assignModal.user.full_name} — rollar</h3>
+              <button className="btn-icon" onClick={() => setAssignModal({ open: false })}><X size={18} /></button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {roles.map(role => (
+                <label key={role.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '8px', border: `1px solid ${assignedRoles.has(role.id) ? 'var(--primary)' : 'var(--border-1)'}`, background: assignedRoles.has(role.id) ? 'var(--primary-soft)' : 'var(--bg-0)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                  <input type="checkbox" checked={assignedRoles.has(role.id)}
+                    onChange={() => setAssignedRoles(prev => { const s = new Set(prev); s.has(role.id) ? s.delete(role.id) : s.add(role.id); return s; })} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-0)' }}>{role.name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{role.permissions.length} permission</div>
+                  </div>
+                  {role.is_system && <span className="badge badge-primary" style={{ fontSize: '10px' }}>Tizim</span>}
+                </label>
+              ))}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setAssignModal({ open: false })}>Bekor qilish</button>
+              <button className="btn btn-primary" disabled={saving} onClick={saveAssignRoles}>
+                {saving ? <><RefreshCw size={13} className="animate-spin" /> Saqlanmoqda...</> : <><UserCheck size={13} /> Saqlash</>}
+              </button>
             </div>
           </div>
         </div>

@@ -9,9 +9,9 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
 
 from app.database import async_session
-from app.models.tender import Tender
-from app.models.tender_match import TenderMatch
-from app.models.user import User
+from app.models.tenders.tender import Tender
+from app.models.tenders.tender_match import TenderMatch
+from app.models.auth.user import User
 from bot.keyboards.inline import tender_actions_kb, tender_list_kb
 from bot.keyboards.reply import main_menu_kb
 

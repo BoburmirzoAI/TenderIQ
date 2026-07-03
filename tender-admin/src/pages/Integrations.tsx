@@ -1,481 +1,550 @@
-import { useState } from 'react';
-import { Bot, Globe, Cpu, Brain, Zap, Play, RefreshCw, Send, CheckCircle, XCircle, Webhook, AlertCircle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { AlertCircle, Brain, CheckCircle, Clock, Edit3, Globe, Play, RefreshCw, Send, X, Zap } from 'lucide-react';
 import { useAdmin } from '../hooks/useAdmin';
+import {
+  type BeatTask,
+  type BotInfo,
+  type CeleryStats,
+  type ConnectionTestResult,
+  type MLModelInfo,
+  type ScraperStatus,
+  integrationsApi,
+} from '../api/admin';
 
-interface Scraper {
-  name: string;
-  status: 'active' | 'error' | 'paused';
-  last_run: string;
-  next_run: string;
-  error_count: number;
-  found_today: number;
-  success_rate: string;
-}
+// ── Cron helpers ──────────────────────────────────────────────────────────────
 
-const scrapers: Scraper[] = [
-  { name: 'UZEX', status: 'active', last_run: '2026-06-17 14:20', next_run: '14:40', error_count: 0, found_today: 45, success_rate: '99%' },
-  { name: 'MC.uz', status: 'error', last_run: '2026-06-17 13:05', next_run: '15:05', error_count: 3, found_today: 12, success_rate: '87%' },
-  { name: 'MyGov', status: 'active', last_run: '2026-06-17 14:00', next_run: '15:00', error_count: 0, found_today: 28, success_rate: '98%' },
+const CRON_PRESETS = [
+  { label: 'Har 10 daqiqa', value: '*/10 * * * *' },
+  { label: 'Har 20 daqiqa', value: '*/20 * * * *' },
+  { label: 'Har 30 daqiqa', value: '*/30 * * * *' },
+  { label: 'Har soat',      value: '0 * * * *' },
+  { label: 'Har 6 soat',    value: '0 */6 * * *' },
+  { label: 'Har kun 00:00', value: '0 0 * * *' },
+  { label: 'Har kun 03:00', value: '0 3 * * *' },
+  { label: 'Har kun 08:00', value: '0 8 * * *' },
+  { label: 'Har dushanba',  value: '0 2 * * 1' },
 ];
 
-const celeryTasks = [
-  { name: 'scrape_uzex', schedule: '*/20 * * * *', last_run: '14:20', next_run: '14:40', status: 'success' },
-  { name: 'scrape_mc', schedule: '5 * * * *', last_run: '14:05', next_run: '15:05', status: 'success' },
-  { name: 'retrain_price_model', schedule: '0 3 * * *', last_run: '03:00', next_run: '03:00 (ertaga)', status: 'success' },
-  { name: 'send_daily_digest', schedule: '0 8 * * *', last_run: '08:00', next_run: '08:00 (ertaga)', status: 'success' },
-  { name: 'send_deadline_reminders', schedule: '0 9 * * *', last_run: '09:00', next_run: '09:00 (ertaga)', status: 'success' },
-  { name: 'cleanup_notifications', schedule: '0 2 * * 1', last_run: '02:00 (dush)', next_run: '02:00 (dush)', status: 'success' },
-  { name: 'evaluate_model_drift', schedule: '0 4 * * *', last_run: '04:00', next_run: '04:00 (ertaga)', status: 'success' },
-  { name: 'verify_backup', schedule: '0 6 * * *', last_run: '06:00', next_run: '06:00 (ertaga)', status: 'success' },
+const CRON_PART_LABELS = ['daqiqa', 'soat', 'kun', 'oy', 'hafta kuni'];
+
+const describeCron = (cron: string): string => {
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length !== 5) return "Noto'g'ri format";
+  const [min, hour, , , dow] = parts;
+  if (cron === '*/10 * * * *') return 'Har 10 daqiqada';
+  if (cron === '*/15 * * * *') return 'Har 15 daqiqada';
+  if (cron === '*/20 * * * *') return 'Har 20 daqiqada';
+  if (cron === '*/30 * * * *') return 'Har 30 daqiqada';
+  if (min === '*' && hour === '*') return 'Har daqiqada';
+  if (min.startsWith('*/')) return `Har ${min.slice(2)} daqiqada`;
+  if (hour === '*' && min !== '*') return `Har soat ${min}-daqiqasida`;
+  if (hour.startsWith('*/') && min === '0') return `Har ${hour.slice(2)} soatda`;
+  const days = ['yakshanba', 'dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba'];
+  if (dow !== '*' && !dow.includes('/') && !dow.includes(','))
+    return `Har ${days[+dow] ?? dow}da soat ${hour}:${min.padStart(2, '0')}da`;
+  return `Har kun soat ${hour}:${min.padStart(2, '0')}da`;
+};
+
+const isCronValid = (cron: string): boolean => {
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length !== 5) return false;
+  return parts.every(p => /^(\*|\d+(-\d+)?(,\d+(-\d+)?)*|\*\/\d+)$/.test(p));
+};
+
+const INTEGRATION_TESTS = [
+  { name: 'PostgreSQL', service: 'postgres',  icon: '🐘' },
+  { name: 'Redis',      service: 'redis',     icon: '⚡' },
+  { name: 'SMTP',       service: 'smtp',      icon: '📧' },
+  { name: 'Telegram',   service: 'telegram',  icon: '✈️' },
+  { name: 'Click',      service: 'click',     icon: '💳' },
+  { name: 'Payme',      service: 'payme',     icon: '💳' },
 ];
 
-const mlModels = [
-  { name: 'PriceModel', last_trained: '2026-06-17 03:00', samples: 2450, accuracy: 87.3, loaded: true },
-  { name: 'WinProbabilityModel', last_trained: '2026-06-16 03:00', samples: 1890, accuracy: 82.1, loaded: true },
-  { name: 'RiskAssessmentModel', last_trained: '2026-06-15 03:00', samples: 1560, accuracy: 79.5, loaded: true },
-  { name: 'OptimalBidModel', last_trained: '2026-06-14 03:00', samples: 980, accuracy: 74.8, loaded: true },
-  { name: 'TenderSimilarityModel', last_trained: '2026-06-17 03:00', samples: 3200, accuracy: 91.2, loaded: true },
-  { name: 'AnomalyModel', last_trained: '2026-06-16 03:00', samples: 4500, accuracy: 85.6, loaded: true },
-  { name: 'TrendForecastModel', last_trained: '2026-06-15 03:00', samples: 2100, accuracy: 76.3, loaded: true },
-  { name: 'MatchingModel', last_trained: '2026-06-17 03:00', samples: 5600, accuracy: 89.7, loaded: true },
-];
+const statusColor = (s: string) => {
+  if (s === 'ok') return 'var(--green)';
+  if (s === 'error') return 'var(--red)';
+  if (s === 'not_configured') return 'var(--yellow)';
+  return 'var(--text-4)';
+};
 
-const integrationTests = [
-  { name: 'PostgreSQL', service: 'postgres', icon: '🐘' },
-  { name: 'Redis', service: 'redis', icon: '⚡' },
-  { name: 'SMTP (Email)', service: 'smtp', icon: '📧' },
-  { name: 'Telegram Bot', service: 'telegram', icon: '✈️' },
-  { name: 'Click', service: 'click', icon: '💳' },
-  { name: 'Payme', service: 'payme', icon: '💳' },
-];
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
   const { addToast } = useAdmin();
-  const [tab, setTab] = useState<'bot' | 'scrapers' | 'celery' | 'ml' | 'api'>('bot');
+  const [tab, setTab] = useState<'celery' | 'scrapers' | 'bot' | 'ml' | 'api'>('celery');
+
+  // Celery
+  const [celeryStats, setCeleryStats] = useState<CeleryStats | null>(null);
+  const [schedule, setSchedule] = useState<BeatTask[]>([]);
+  const [loadingCelery, setLoadingCelery] = useState(false);
   const [triggeringTask, setTriggeringTask] = useState<string | null>(null);
-  const [retrainingModel, setRetrainingModel] = useState<string | null>(null);
-  const [testingService, setTestingService] = useState<string | null>(null);
-  const [runningScrapers, setRunningScrapers] = useState<Set<string>>(new Set());
+  const [editTask, setEditTask] = useState<BeatTask | null>(null);
+  const [editSchedule, setEditSchedule] = useState('');
   const [clearingQueue, setClearingQueue] = useState(false);
-  const [testWebhook, setTestWebhook] = useState(false);
+
+  // Scrapers
+  const [scrapers, setScrapers] = useState<ScraperStatus[]>([]);
+  const [loadingScrapers, setLoadingScrapers] = useState(false);
+  const [runningScrapers, setRunningScrapers] = useState<Set<string>>(new Set());
+
+  // ML
+  const [mlModels, setMlModels] = useState<MLModelInfo[]>([]);
+  const [loadingML, setLoadingML] = useState(false);
+  const [retrainingModel, setRetrainingModel] = useState<string | null>(null);
+
+  // Bot
+  const [botInfo, setBotInfo] = useState<BotInfo | null>(null);
+  const [loadingBot, setLoadingBot] = useState(false);
   const [botMessage, setBotMessage] = useState('');
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
 
-  const triggerTask = (name: string) => {
-    setTriggeringTask(name);
-    addToast('Task', `${name} ishga tushirildi`, 'info');
-    setTimeout(() => { setTriggeringTask(null); addToast('Tayyor', `${name} muvaffaqiyatli bajarildi`, 'success'); }, 2500);
+  // Connection tests
+  const [testResults, setTestResults] = useState<Record<string, ConnectionTestResult>>({});
+  const [testingService, setTestingService] = useState<string | null>(null);
+
+  // ── Loaders ──────────────────────────────────────────────────────────────────
+
+  const loadCelery = useCallback(async () => {
+    setLoadingCelery(true);
+    try {
+      const [stats, sched] = await Promise.all([
+        integrationsApi.celeryStats(),
+        integrationsApi.celerySchedule(),
+      ]);
+      setCeleryStats(stats);
+      setSchedule(sched);
+    } catch {
+      addToast('Xatolik', "Celery ma'lumotlarini yuklab bo'lmadi", 'error');
+    } finally {
+      setLoadingCelery(false);
+    }
+  }, [addToast]);
+
+  const loadScrapers = useCallback(async () => {
+    setLoadingScrapers(true);
+    try {
+      setScrapers(await integrationsApi.scrapers());
+    } catch {
+      addToast('Xatolik', "Scraper ma'lumotlarini yuklab bo'lmadi", 'error');
+    } finally {
+      setLoadingScrapers(false);
+    }
+  }, [addToast]);
+
+  const loadML = useCallback(async () => {
+    setLoadingML(true);
+    try {
+      setMlModels(await integrationsApi.mlModels());
+    } catch {
+      addToast('Xatolik', "ML modellarini yuklab bo'lmadi", 'error');
+    } finally {
+      setLoadingML(false);
+    }
+  }, [addToast]);
+
+  const loadBot = useCallback(async () => {
+    setLoadingBot(true);
+    try {
+      setBotInfo(await integrationsApi.botInfo());
+    } catch {
+      addToast('Xatolik', "Bot ma'lumotlarini yuklab bo'lmadi", 'error');
+    } finally {
+      setLoadingBot(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => {
+    if (tab === 'celery') loadCelery();
+    else if (tab === 'scrapers') loadScrapers();
+    else if (tab === 'ml') loadML();
+    else if (tab === 'bot') loadBot();
+  }, [tab, loadCelery, loadScrapers, loadML, loadBot]);
+
+  // ── Actions ───────────────────────────────────────────────────────────────────
+
+  const triggerTask = async (taskName: string) => {
+    setTriggeringTask(taskName);
+    try {
+      const res = await integrationsApi.triggerTask(taskName);
+      addToast('Task yuborildi', `ID: ${res.task_id}`, 'success');
+    } catch {
+      addToast('Xatolik', 'Task yuborishda xato', 'error');
+    } finally {
+      setTriggeringTask(null);
+    }
   };
 
-  const retrainModel = (name: string) => {
-    setRetrainingModel(name);
-    addToast('ML', `${name} qayta o'qitilmoqda...`, 'info');
-    setTimeout(() => { setRetrainingModel(null); addToast('Tayyor', `${name} qayta o'qitildi — aniqlik yangilandi`, 'success'); }, 3000);
-  };
-
-  const testService = (service: string, name: string) => {
-    setTestingService(service);
-    addToast('Test', `${name} tekshirilmoqda...`, 'info');
-    setTimeout(() => {
-      setTestingService(null);
-      addToast('Natija', `${name}: ulanish muvaffaqiyatli (45ms)`, 'success');
-    }, 1500);
-  };
-
-  const runScraper = (name: string) => {
+  const runScraper = async (name: string) => {
     setRunningScrapers(p => new Set([...p, name]));
-    addToast('Scraper', `${name} qo'lda ishga tushirildi`, 'info');
-    setTimeout(() => {
-      setRunningScrapers(p => { const next = new Set(p); next.delete(name); return next; });
-      addToast('Tayyor', `${name}: 12 ta yangi tender topildi`, 'success');
-    }, 3000);
+    try {
+      const res = await integrationsApi.runScraper(name);
+      addToast('Scraper', `${name} navbatga qo'shildi (ID: ${res.task_id})`, 'success');
+    } catch {
+      addToast('Xatolik', `${name} scraperini ishga tushirib bo'lmadi`, 'error');
+    } finally {
+      setRunningScrapers(p => { const n = new Set(p); n.delete(name); return n; });
+    }
   };
 
-  const clearQueue = () => {
-    setClearingQueue(true);
-    addToast('Navbat', 'Celery navbati tozalanmoqda...', 'info');
-    setTimeout(() => { setClearingQueue(false); addToast('Tayyor', 'Navbat tozalandi', 'success'); }, 2000);
+  const retrainModel = async (name: string) => {
+    setRetrainingModel(name);
+    try {
+      const res = await integrationsApi.retrainModel(name);
+      addToast('ML', `${name} qayta o'qitish navbatga qo'shildi (ID: ${res.task_id})`, 'success');
+    } catch {
+      addToast('Xatolik', `${name} qayta o'qitishda xato`, 'error');
+    } finally {
+      setRetrainingModel(null);
+    }
   };
 
-  const testWebhookFn = () => {
-    setTestWebhook(true);
-    addToast('Webhook', 'Test so\'rovi yuborilmoqda...', 'info');
-    setTimeout(() => {
-      setTestWebhook(false);
-      addToast('Webhook', 'Webhook ishlayapti — 200 OK qaytdi (142ms)', 'success');
-    }, 1500);
+  const sendBroadcast = async () => {
+    if (!botMessage.trim()) { addToast('Xato', 'Xabar matnini kiriting', 'error'); return; }
+    setSendingBroadcast(true);
+    try {
+      const res = await integrationsApi.botBroadcast(botMessage.trim());
+      addToast('Yuborildi', `${res.sent} ta foydalanuvchiga xabar yuborildi`, 'success');
+      setBotMessage('');
+    } catch {
+      addToast('Xatolik', 'Telegram xabar yuborishda xato', 'error');
+    } finally {
+      setSendingBroadcast(false);
+    }
   };
 
-  const scrapeStatusBadge = (status: Scraper['status']) => {
-    if (status === 'active') return 'badge-green';
-    if (status === 'error') return 'badge-red';
-    return 'badge-yellow';
+  const testConnection = async (service: string) => {
+    setTestingService(service);
+    try {
+      const res = await integrationsApi.testConnection(service);
+      setTestResults(p => ({ ...p, [service]: res }));
+      const msg = res.status === 'ok' ? `${res.latency_ms}ms` : res.detail || res.status;
+      addToast(
+        res.status === 'ok' ? 'Muvaffaqiyatli' : 'Xato',
+        `${service}: ${msg}`,
+        res.status === 'ok' ? 'success' : 'error',
+      );
+    } catch {
+      addToast('Xatolik', `${service} testida xato`, 'error');
+    } finally {
+      setTestingService(null);
+    }
   };
 
-  const accuracyColor = (acc: number) => {
-    if (acc >= 85) return 'var(--green)';
-    if (acc >= 75) return 'var(--yellow)';
-    return 'var(--orange)';
+  const openEditTask = (t: BeatTask) => { setEditTask(t); setEditSchedule(t.schedule); };
+  const closeEditTask = () => { setEditTask(null); setEditSchedule(''); };
+
+  const saveTaskSchedule = () => {
+    if (!editTask || !isCronValid(editSchedule)) return;
+    setSchedule(prev => prev.map(t => t.name === editTask.name ? { ...t, schedule: editSchedule } : t));
+    addToast('Saqlandi', `${editTask.name} jadvali yangilandi`, 'success');
+    closeEditTask();
   };
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+
+  const Spinner = () => (
+    <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-4)' }}>
+      <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px', display: 'block' }} />
+      <div>Yuklanmoqda...</div>
+    </div>
+  );
 
   return (
     <div className="page-container">
-      <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)', marginBottom: '24px' }}>Integratsiyalar</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)', marginBottom: '24px' }}>
+        Integratsiyalar
+      </h1>
 
       <div className="tabs mb-24">
-        <button className={`tab ${tab === 'bot' ? 'active' : ''}`} onClick={() => setTab('bot')}>Telegram Bot</button>
-        <button className={`tab ${tab === 'scrapers' ? 'active' : ''}`} onClick={() => setTab('scrapers')}>Scraperlar</button>
-        <button className={`tab ${tab === 'celery' ? 'active' : ''}`} onClick={() => setTab('celery')}>Celery</button>
-        <button className={`tab ${tab === 'ml' ? 'active' : ''}`} onClick={() => setTab('ml')}>ML Modellar</button>
-        <button className={`tab ${tab === 'api' ? 'active' : ''}`} onClick={() => setTab('api')}>API & Ulanishlar</button>
+        {(['celery', 'scrapers', 'bot', 'ml', 'api'] as const).map(t => (
+          <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
+            {t === 'celery' ? 'Celery' : t === 'scrapers' ? 'Scraperlar' : t === 'bot' ? 'Telegram Bot' : t === 'ml' ? 'ML Modellar' : 'API & Ulanishlar'}
+          </button>
+        ))}
       </div>
 
-      {/* Telegram Bot tab */}
-      {tab === 'bot' && (
-        <div>
-          <div className="grid-3 mb-24">
-            <div className="card stat-card">
-              <div className="stat-label">Bot username</div>
-              <div className="stat-value" style={{ fontSize: '18px', color: 'var(--cyan)' }}>@TendersIQbot</div>
-            </div>
-            <div className="card stat-card">
-              <div className="stat-label">Ro'yxatdan o'tgan</div>
-              <div className="stat-value">456</div>
-            </div>
-            <div className="card stat-card">
-              <div className="stat-label">Faol guruhlar</div>
-              <div className="stat-value">23</div>
-            </div>
-          </div>
-
-          <div className="card mb-16">
-            <div className="card-header flex-between">
-              <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Webhook sozlamasi</span>
-              <span className="badge badge-green">Faol</span>
-            </div>
-            <div className="card-body">
-              <div style={{ marginBottom: '12px' }}>
-                <label className="input-label">Webhook URL</label>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                  <input
-                    className="input"
-                    defaultValue="https://api.tenderiq.uz/bot/webhook"
-                    style={{ flex: 1 }}
-                  />
-                  <button className="btn btn-primary" onClick={() => addToast('Saqlandi', 'Webhook URL saqlandi', 'success')}>
-                    Saqlash
-                  </button>
-                  <button
-                    className="btn btn-sm"
-                    onClick={testWebhookFn}
-                    disabled={testWebhook}
-                    style={{ flexShrink: 0 }}
-                  >
-                    {testWebhook
-                      ? <><RefreshCw size={13} className="animate-spin" /> Tekshirilmoqda</>
-                      : <><Webhook size={13} /> Test webhook</>}
-                  </button>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
-                <div style={{ padding: '8px 12px', background: 'var(--bg-1)', borderRadius: '6px' }}>
-                  <span style={{ color: 'var(--text-4)' }}>Token: </span>
-                  <span className="font-mono" style={{ color: 'var(--text-2)' }}>861511***:AAH***</span>
-                </div>
-                <div style={{ padding: '8px 12px', background: 'var(--bg-1)', borderRadius: '6px' }}>
-                  <span style={{ color: 'var(--text-4)' }}>Ohirgi update: </span>
-                  <span style={{ color: 'var(--text-2)' }}>14:30:12</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Broadcast xabar yuborish</span>
-            </div>
-            <div className="card-body">
-              <div className="input-group mb-16">
-                <label className="input-label">Xabar matni</label>
-                <textarea
-                  className="input"
-                  rows={4}
-                  placeholder="Barcha foydalanuvchilarga xabar..."
-                  value={botMessage}
-                  onChange={e => setBotMessage(e.target.value)}
-                  style={{ resize: 'vertical' }}
-                />
-              </div>
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  if (!botMessage.trim()) { addToast('Xato', 'Xabar matnini kiriting', 'error'); return; }
-                  addToast('Yuborildi', 'Telegram xabari barcha foydalanuvchilarga yuborildi', 'success');
-                  setBotMessage('');
-                }}
-              >
-                <Send size={14} /> Yuborish
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Scrapers tab */}
-      {tab === 'scrapers' && (
-        <div className="grid-3">
-          {scrapers.map(s => (
-            <div key={s.name} className="card">
-              <div className="card-header flex-between">
-                <span style={{ fontWeight: 700, color: 'var(--text-0)', fontSize: '15px' }}>{s.name}</span>
-                <span className={`badge ${scrapeStatusBadge(s.status)}`}>
-                  {s.status === 'active' ? 'Faol' : s.status === 'error' ? 'Xato' : 'To\'xtatilgan'}
-                </span>
-              </div>
-              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <div style={{ background: 'var(--bg-1)', padding: '8px 10px', borderRadius: '6px' }}>
-                    <div style={{ fontSize: '10px', color: 'var(--text-4)', marginBottom: '2px' }}>Oxirgi ishga tushish</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-1)', fontWeight: 500 }}>{s.last_run}</div>
-                  </div>
-                  <div style={{ background: 'var(--bg-1)', padding: '8px 10px', borderRadius: '6px' }}>
-                    <div style={{ fontSize: '10px', color: 'var(--text-4)', marginBottom: '2px' }}>Keyingisi</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-1)', fontWeight: 500 }}>{s.next_run}</div>
-                  </div>
-                  <div style={{ background: 'var(--bg-1)', padding: '8px 10px', borderRadius: '6px' }}>
-                    <div style={{ fontSize: '10px', color: 'var(--text-4)', marginBottom: '2px' }}>Bugun topildi</div>
-                    <div style={{ fontSize: '14px', color: 'var(--text-0)', fontWeight: 700 }}>{s.found_today}</div>
-                  </div>
-                  <div style={{ background: 'var(--bg-1)', padding: '8px 10px', borderRadius: '6px' }}>
-                    <div style={{ fontSize: '10px', color: 'var(--text-4)', marginBottom: '2px' }}>Muvaffaqiyat</div>
-                    <div style={{ fontSize: '14px', color: 'var(--green)', fontWeight: 700 }}>{s.success_rate}</div>
-                  </div>
-                </div>
-
-                {s.error_count > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 10px', background: 'rgba(239,68,68,0.08)', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.2)' }}>
-                    <AlertCircle size={13} style={{ color: 'var(--red)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '12px', color: 'var(--red)' }}>{s.error_count} ta xato yozuvi</span>
-                  </div>
-                )}
-
-                <div className="input-group">
-                  <label className="input-label" style={{ fontSize: '11px' }}>Max retries</label>
-                  <input className="input" type="number" defaultValue={3} style={{ height: '32px', fontSize: '12px' }} />
-                </div>
-                <div className="input-group">
-                  <label className="input-label" style={{ fontSize: '11px' }}>Timeout (s)</label>
-                  <input className="input" type="number" defaultValue={30} style={{ height: '32px', fontSize: '12px' }} />
-                </div>
-
-                <button
-                  className="btn btn-sm btn-primary"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                  onClick={() => runScraper(s.name)}
-                  disabled={runningScrapers.has(s.name)}
-                >
-                  {runningScrapers.has(s.name)
-                    ? <><RefreshCw size={12} className="animate-spin" /> Ishlamoqda...</>
-                    : <><Play size={12} /> Hozir ishga tushirish</>}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Celery tab */}
+      {/* ── Celery tab ── */}
       {tab === 'celery' && (
-        <div>
-          <div className="grid-4 mb-24">
-            <div className="card stat-card">
-              <div className="stat-label">Workers</div>
-              <div className="stat-value">2</div>
-            </div>
-            <div className="card stat-card">
-              <div className="stat-label">Faol tasklar</div>
-              <div className="stat-value">0</div>
-            </div>
-            <div className="card stat-card">
-              <div className="stat-label">Rezerv</div>
-              <div className="stat-value">3</div>
-            </div>
-            <div className="card stat-card">
-              <div className="stat-label">Rejalashtirilgan</div>
-              <div className="stat-value">{celeryTasks.length}</div>
-            </div>
-          </div>
-
-          <div className="card mb-16">
-            <div className="card-header flex-between">
-              <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Beat Schedule</span>
-              <button
-                className="btn btn-sm btn-danger"
-                onClick={clearQueue}
-                disabled={clearingQueue}
-              >
-                {clearingQueue
-                  ? <><RefreshCw size={12} className="animate-spin" /> Tozalanmoqda</>
-                  : 'Navbatni tozalash'}
-              </button>
-            </div>
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th style={{ padding: '12px 16px' }}>Task nomi</th>
-                    <th style={{ padding: '12px 16px' }}>Jadval</th>
-                    <th style={{ padding: '12px 16px' }}>Oxirgi</th>
-                    <th style={{ padding: '12px 16px' }}>Keyingisi</th>
-                    <th style={{ padding: '12px 16px' }}>Holat</th>
-                    <th style={{ padding: '12px 16px' }}>Amallar</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {celeryTasks.map(t => (
-                    <tr key={t.name}>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span className="font-mono" style={{ fontSize: '12px', color: 'var(--primary)' }}>{t.name}</span>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span className="font-mono" style={{ fontSize: '12px' }}>{t.schedule}</span>
-                      </td>
-                      <td style={{ padding: '12px 16px', color: 'var(--text-3)', fontSize: '13px' }}>{t.last_run}</td>
-                      <td style={{ padding: '12px 16px', color: 'var(--text-3)', fontSize: '13px' }}>{t.next_run}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span className="badge badge-green">OK</span>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <button
-                          className="btn btn-sm"
-                          onClick={() => triggerTask(t.name)}
-                          disabled={triggeringTask === t.name}
-                        >
-                          {triggeringTask === t.name
-                            ? <><RefreshCw size={12} className="animate-spin" /> Ishlamoqda</>
-                            : <><Play size={12} /> Trigger</>}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>So'nggi task tarixi</span>
-            </div>
-            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {['scrape_uzex: 45 tender (2.1s)', 'scrape_mc: 12 tender (8.4s)', 'send_deadline_reminders: 23 xabar (1.2s)'].map((item, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '10px 12px', background: 'var(--bg-1)', borderRadius: '6px'
-                }}>
-                  <CheckCircle size={14} style={{ color: 'var(--green)', flexShrink: 0 }} />
-                  <span className="font-mono" style={{ fontSize: '12px', color: 'var(--text-2)' }}>{item}</span>
+        loadingCelery ? <Spinner /> : (
+          <div>
+            <div className="grid-4 mb-24">
+              {[
+                { label: 'Workers',        value: celeryStats?.workers ?? 0 },
+                { label: 'Faol tasklar',   value: celeryStats?.active_tasks ?? 0 },
+                { label: 'Rezerv',         value: celeryStats?.reserved_tasks ?? 0 },
+                { label: 'Rejalashtirilgan', value: schedule.length },
+              ].map(s => (
+                <div key={s.label} className="card stat-card">
+                  <div className="stat-label">{s.label}</div>
+                  <div className="stat-value">{s.value}</div>
                 </div>
               ))}
             </div>
+
+            <div className="card mb-16">
+              <div className="card-header flex-between">
+                <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Beat Schedule</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="btn btn-sm" onClick={loadCelery}>
+                    <RefreshCw size={12} /> Yangilash
+                  </button>
+                  <button className="btn btn-sm btn-danger" onClick={() => { setClearingQueue(true); addToast("Ma'lumot", 'Navbatni tozalash worker restart orqali amalga oshiriladi', 'info'); setClearingQueue(false); }} disabled={clearingQueue}>
+                    Navbatni tozalash
+                  </button>
+                </div>
+              </div>
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Task nomi</th>
+                      <th>Jadval</th>
+                      <th>Tavsif</th>
+                      <th>Holat</th>
+                      <th>Amallar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {schedule.map(t => (
+                      <tr key={t.name}>
+                        <td>
+                          <span className="font-mono" style={{ fontSize: '12px', color: 'var(--primary)' }}>
+                            {t.name}
+                          </span>
+                        </td>
+                        <td>
+                          <code style={{ fontSize: '11px', background: 'var(--bg-0)', padding: '2px 7px', borderRadius: '4px', color: 'var(--text-1)' }}>
+                            {t.schedule}
+                          </code>
+                        </td>
+                        <td style={{ fontSize: '12px', color: 'var(--text-3)', maxWidth: '200px' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                            {t.description || describeCron(t.schedule)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="badge badge-green">Faol</span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <button className="btn-icon" title="Jadvalni tahrirlash" onClick={() => openEditTask(t)} style={{ color: 'var(--primary)' }}>
+                              <Edit3 size={14} />
+                            </button>
+                            <button
+                              className="btn btn-sm"
+                              onClick={() => triggerTask(t.task)}
+                              disabled={triggeringTask === t.task}
+                              style={{ padding: '4px 8px' }}
+                            >
+                              {triggeringTask === t.task
+                                ? <RefreshCw size={11} className="animate-spin" />
+                                : <><Play size={11} /> Trigger</>}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {celeryStats && celeryStats.worker_names.length > 0 && (
+              <div className="card">
+                <div className="card-header">
+                  <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Faol workerlar</span>
+                </div>
+                <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {celeryStats.worker_names.map(name => (
+                    <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--bg-1)', borderRadius: '6px' }}>
+                      <CheckCircle size={14} style={{ color: 'var(--green)', flexShrink: 0 }} />
+                      <span className="font-mono" style={{ fontSize: '12px', color: 'var(--text-2)' }}>{name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )
       )}
 
-      {/* ML Models tab */}
-      {tab === 'ml' && (
-        <div className="grid-2">
-          {mlModels.map(m => (
-            <div key={m.name} className="card">
-              <div className="card-header flex-between">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Brain size={16} style={{ color: 'var(--purple)' }} />
-                  <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>{m.name}</span>
+      {/* ── Scrapers tab ── */}
+      {tab === 'scrapers' && (
+        loadingScrapers ? <Spinner /> : (
+          <div className="grid-3">
+            {scrapers.map(s => (
+              <div key={s.name} className="card">
+                <div className="card-header flex-between">
+                  <span style={{ fontWeight: 700, color: 'var(--text-0)', fontSize: '15px' }}>{s.name}</span>
+                  <span className={`badge ${s.status === 'active' ? 'badge-green' : 'badge-red'}`}>
+                    {s.status === 'active' ? 'Faol' : 'Xato'}
+                  </span>
                 </div>
-                <span className={`badge ${m.loaded ? 'badge-green' : 'badge-red'}`}>
-                  {m.loaded ? 'Yuklangan' : 'Yuklanmagan'}
-                </span>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {s.last_result ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div style={{ background: 'var(--bg-1)', padding: '8px 10px', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text-4)', marginBottom: '2px' }}>Manba</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-1)', fontWeight: 500 }}>{s.last_result.source}</div>
+                      </div>
+                      <div style={{ background: 'var(--bg-1)', padding: '8px 10px', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text-4)', marginBottom: '2px' }}>Oxirgi natija</div>
+                        <div style={{ fontSize: '14px', color: 'var(--text-0)', fontWeight: 700 }}>{s.last_result.new_tenders} ta yangi tender</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 10px', background: 'var(--bg-1)', borderRadius: '6px' }}>
+                      <AlertCircle size={13} style={{ color: 'var(--text-4)', flexShrink: 0 }} />
+                      <span style={{ fontSize: '12px', color: 'var(--text-4)' }}>Hali ishga tushurilmagan</span>
+                    </div>
+                  )}
+                  <div style={{ fontSize: '11px', color: 'var(--text-4)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                    {s.task_name}
+                  </div>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => runScraper(s.name)}
+                    disabled={runningScrapers.has(s.name)}
+                  >
+                    {runningScrapers.has(s.name)
+                      ? <><RefreshCw size={12} className="animate-spin" /> Navbatga qo'shilmoqda...</>
+                      : <><Play size={12} /> Hozir ishga tushirish</>}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* ── Telegram Bot tab ── */}
+      {tab === 'bot' && (
+        loadingBot ? <Spinner /> : (
+          <div>
+            <div className="grid-3 mb-24">
+              <div className="card stat-card">
+                <div className="stat-label">Bot username</div>
+                <div className="stat-value" style={{ fontSize: '18px', color: 'var(--cyan)' }}>
+                  {botInfo?.username || '—'}
+                </div>
+              </div>
+              <div className="card stat-card">
+                <div className="stat-label">Telegram ulangan foydalanuvchilar</div>
+                <div className="stat-value">{botInfo?.registered_users ?? 0}</div>
+              </div>
+              <div className="card stat-card">
+                <div className="stat-label">Faol guruhlar</div>
+                <div className="stat-value">{botInfo?.active_groups ?? 0}</div>
+              </div>
+            </div>
+
+            <div className="card mb-16">
+              <div className="card-header">
+                <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Bot sozlamalari</span>
               </div>
               <div className="card-body">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div>
-                    <div style={{ fontSize: '32px', fontWeight: 800, color: accuracyColor(m.accuracy) }}>
-                      {m.accuracy}%
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-4)' }}>Aniqlik darajasi</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
+                  <div style={{ padding: '8px 12px', background: 'var(--bg-1)', borderRadius: '6px' }}>
+                    <span style={{ color: 'var(--text-4)' }}>Token: </span>
+                    <span className="font-mono" style={{ color: 'var(--text-2)' }}>
+                      {botInfo?.token_masked || '***'}
+                    </span>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-0)' }}>
-                      {m.samples.toLocaleString()}
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-4)' }}>Namunalar</div>
+                  <div style={{ padding: '8px 12px', background: 'var(--bg-1)', borderRadius: '6px' }}>
+                    <span style={{ color: 'var(--text-4)' }}>Webhook URL: </span>
+                    <span style={{ color: 'var(--text-2)', fontSize: '11px' }}>
+                      {botInfo?.webhook_url || 'Sozlanmagan'}
+                    </span>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <div className="progress mb-16">
-                  <div
-                    className="progress-fill"
-                    style={{ width: `${m.accuracy}%`, background: accuracyColor(m.accuracy) }}
+            <div className="card">
+              <div className="card-header">
+                <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Broadcast xabar yuborish</span>
+              </div>
+              <div className="card-body">
+                <div className="input-group mb-16">
+                  <label className="input-label">Xabar matni (HTML qo'llab-quvvatlanadi)</label>
+                  <textarea
+                    className="input"
+                    rows={4}
+                    placeholder="Barcha telegram ulangan foydalanuvchilarga xabar..."
+                    value={botMessage}
+                    onChange={e => setBotMessage(e.target.value)}
+                    style={{ resize: 'vertical' }}
                   />
                 </div>
-
-                <div style={{ fontSize: '12px', color: 'var(--text-4)', marginBottom: '12px' }}>
-                  Oxirgi o'qitish: <span style={{ color: 'var(--text-2)' }}>{m.last_trained}</span>
-                </div>
-
                 <button
-                  className="btn btn-sm btn-primary"
-                  onClick={() => retrainModel(m.name)}
-                  disabled={retrainingModel === m.name}
-                  style={{ width: '100%', justifyContent: 'center' }}
+                  className="btn btn-primary"
+                  onClick={sendBroadcast}
+                  disabled={sendingBroadcast}
                 >
-                  {retrainingModel === m.name
-                    ? <><RefreshCw size={12} className="animate-spin" /> O'qitilmoqda...</>
-                    : <><Brain size={12} /> Qayta o'qitish</>}
+                  {sendingBroadcast
+                    ? <><RefreshCw size={14} className="animate-spin" /> Yuborilmoqda...</>
+                    : <><Send size={14} /> Yuborish</>}
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        )
       )}
 
-      {/* API Config tab */}
-      {tab === 'api' && (
-        <div>
-          <div className="card mb-24">
-            <div className="card-header">
-              <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>API kalitlari (yashirilgan)</span>
-            </div>
-            <div className="card-body">
-              <div className="grid-2" style={{ gap: '12px' }}>
-                {[
-                  { label: 'Anthropic API Key', value: 'sk-ant-***...***' },
-                  { label: 'Claude Model', value: 'claude-sonnet-4-20250514' },
-                  { label: 'Click Merchant ID', value: '***...***' },
-                  { label: 'Payme Merchant ID', value: '***...***' },
-                  { label: 'SMTP User', value: 'sobirjonov***@gmail.com' },
-                  { label: 'Telegram Bot Token', value: '861511***:AAH***' },
-                ].map(item => (
-                  <div key={item.label} style={{ padding: '10px 12px', background: 'var(--bg-1)', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-4)', marginBottom: '4px' }}>{item.label}</div>
-                    <div className="font-mono" style={{ fontSize: '12px', color: 'var(--text-2)' }}>{item.value}</div>
+      {/* ── ML Models tab ── */}
+      {tab === 'ml' && (
+        loadingML ? <Spinner /> : (
+          <div className="grid-2">
+            {mlModels.map(m => (
+              <div key={m.name} className="card">
+                <div className="card-header flex-between">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Brain size={16} style={{ color: 'var(--purple)' }} />
+                    <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>{m.name}</span>
                   </div>
-                ))}
+                  <span className={`badge ${m.status === 'loaded' ? 'badge-green' : 'badge-red'}`}>
+                    {m.status === 'loaded' ? 'Yuklangan' : m.status}
+                  </span>
+                </div>
+                <div className="card-body">
+                  <div style={{ fontSize: '11px', color: 'var(--text-4)', fontFamily: 'monospace', marginBottom: '12px', wordBreak: 'break-all' }}>
+                    {m.task_name}
+                  </div>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={() => retrainModel(m.name)}
+                    disabled={retrainingModel === m.name}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    {retrainingModel === m.name
+                      ? <><RefreshCw size={12} className="animate-spin" /> Navbatga qo'shilmoqda...</>
+                      : <><Brain size={12} /> Qayta o'qitish</>}
+                  </button>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
+        )
+      )}
 
-          <div className="card">
-            <div className="card-header">
-              <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Ulanish testlari</span>
-            </div>
-            <div className="card-body">
-              <div className="grid-3">
-                {integrationTests.map(t => (
+      {/* ── API & Connections tab ── */}
+      {tab === 'api' && (
+        <div className="card">
+          <div className="card-header">
+            <span style={{ fontWeight: 700, color: 'var(--text-0)' }}>Ulanish testlari</span>
+          </div>
+          <div className="card-body">
+            <div className="grid-3">
+              {INTEGRATION_TESTS.map(t => {
+                const result = testResults[t.service];
+                return (
                   <div
                     key={t.service}
                     style={{
                       padding: '16px', background: 'var(--bg-1)', borderRadius: '10px',
-                      border: '1px solid var(--border-1)', display: 'flex', flexDirection: 'column', gap: '12px'
+                      border: `1px solid ${result ? statusColor(result.status) + '40' : 'var(--border-1)'}`,
+                      display: 'flex', flexDirection: 'column', gap: '12px',
                     }}
                   >
                     <div className="flex-between">
@@ -485,19 +554,117 @@ export default function IntegrationsPage() {
                       </div>
                       {testingService === t.service
                         ? <RefreshCw size={14} className="animate-spin" style={{ color: 'var(--primary)' }} />
-                        : <Globe size={14} style={{ color: 'var(--text-4)' }} />}
+                        : result
+                          ? <span style={{ fontSize: '11px', fontWeight: 600, color: statusColor(result.status) }}>
+                              {result.status === 'ok' ? `${result.latency_ms}ms` : result.status}
+                            </span>
+                          : <Globe size={14} style={{ color: 'var(--text-4)' }} />}
                     </div>
+                    {result?.detail && (
+                      <div style={{ fontSize: '11px', color: 'var(--red)', wordBreak: 'break-all' }}>
+                        {result.detail}
+                      </div>
+                    )}
                     <button
                       className="btn btn-sm btn-primary"
                       style={{ width: '100%', justifyContent: 'center' }}
-                      onClick={() => testService(t.service, t.name)}
+                      onClick={() => testConnection(t.service)}
                       disabled={testingService === t.service}
                     >
                       {testingService === t.service ? 'Tekshirilmoqda...' : <><Zap size={11} /> Test</>}
                     </button>
                   </div>
-                ))}
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Schedule Modal ── */}
+      {editTask && (
+        <div className="modal-overlay" onClick={closeEditTask}>
+          <div className="modal" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-0)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Clock size={16} style={{ color: 'var(--primary)' }} /> Jadval tahrirlash
+              </h3>
+              <button className="btn-icon" onClick={closeEditTask}><X size={18} /></button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--bg-0)', borderRadius: '8px', border: '1px solid var(--border-1)' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-3)', marginBottom: '4px' }}>Task</div>
+                <code style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600 }}>{editTask.name}</code>
+                <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '4px' }}>{editTask.description}</div>
               </div>
+
+              <div className="input-group">
+                <label className="input-label">Cron ifodasi <span style={{ color: 'var(--red)' }}>*</span></label>
+                <input
+                  className="input"
+                  value={editSchedule}
+                  onChange={e => setEditSchedule(e.target.value)}
+                  placeholder="* * * * *"
+                  style={{
+                    fontFamily: 'monospace', letterSpacing: '1px', fontSize: '14px',
+                    border: `1px solid ${editSchedule && !isCronValid(editSchedule) ? 'var(--red)' : 'var(--border-1)'}`,
+                  }}
+                />
+                <div style={{ marginTop: '4px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-4)' }}>
+                    {CRON_PART_LABELS.map((l, i) => (
+                      <span key={l} style={{ marginRight: '12px' }}>
+                        <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{editSchedule.split(/\s+/)[i] ?? '*'}</span>
+                        {' '}{l}
+                      </span>
+                    ))}
+                  </span>
+                </div>
+                {editSchedule && !isCronValid(editSchedule) && (
+                  <span style={{ fontSize: '11px', color: 'var(--red)', marginTop: '4px', display: 'block' }}>
+                    Noto'g'ri cron format (5 ta qism kerak)
+                  </span>
+                )}
+              </div>
+
+              {isCronValid(editSchedule) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: 'rgba(14,165,233,0.06)', borderRadius: '8px', border: '1px solid rgba(14,165,233,0.15)' }}>
+                  <Clock size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                  <span style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 500 }}>
+                    {describeCron(editSchedule)}
+                  </span>
+                </div>
+              )}
+
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-2)', marginBottom: '8px' }}>Tezkor tanlash</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {CRON_PRESETS.map(p => (
+                    <button
+                      key={p.value}
+                      onClick={() => setEditSchedule(p.value)}
+                      style={{
+                        padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                        border: `1px solid ${editSchedule === p.value ? 'var(--primary)' : 'var(--border-1)'}`,
+                        background: editSchedule === p.value ? 'var(--primary-soft)' : 'var(--bg-0)',
+                        color: editSchedule === p.value ? 'var(--primary)' : 'var(--text-2)',
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={closeEditTask}>Bekor qilish</button>
+              <button
+                className="btn btn-primary"
+                disabled={!isCronValid(editSchedule) || editSchedule === editTask.schedule}
+                onClick={saveTaskSchedule}
+              >
+                <CheckCircle size={14} /> Saqlash
+              </button>
             </div>
           </div>
         </div>

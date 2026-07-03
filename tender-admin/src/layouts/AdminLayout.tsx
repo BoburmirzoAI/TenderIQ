@@ -1,13 +1,13 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, FileSearch, Database, CreditCard,
   Zap, Bell, Activity, Settings, ShieldCheck, Power, RefreshCw,
   AlertTriangle, X, Target, GitBranch, Brain, BarChart3,
   FileDown, Calendar, Columns3, Calculator, Swords, TrendingUp,
   UsersRound, Map, BookOpen, FileText, Building2, Bookmark,
-  Globe, Lock, Radio
+  Globe, Lock, Radio, ClipboardList, Tag, KeyRound, MailOpen, Terminal
 } from 'lucide-react';
-import { useAdmin } from '../hooks/useAdmin';
+import { useAdmin, registerSetActiveTab } from '../hooks/useAdmin';
 
 import Dashboard from '../pages/Dashboard';
 import UsersPage from '../pages/Users';
@@ -37,6 +37,11 @@ import Companies from '../pages/Companies';
 import SavedSearches from '../pages/SavedSearches';
 import APIEndpoints from '../pages/APIEndpoints';
 import WebSocketMonitor from '../pages/WebSocketMonitor';
+import AuditLog from '../pages/AuditLog';
+import PromoCodes from '../pages/PromoCodes';
+import APIKeys from '../pages/APIKeys';
+import EmailTemplates from '../pages/EmailTemplates';
+import ContainerLogs from '../pages/ContainerLogs';
 
 const pageMap: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -66,6 +71,11 @@ const pageMap: Record<string, React.ComponentType> = {
   health: PlatformHealthPage,
   api_endpoints: APIEndpoints,
   websocket: WebSocketMonitor,
+  audit_log: AuditLog,
+  promo_codes: PromoCodes,
+  api_keys: APIKeys,
+  email_templates: EmailTemplates,
+  container_logs: ContainerLogs,
   settings: SettingsPage,
 };
 
@@ -76,6 +86,8 @@ const navSections = [
       { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard },
       { id: 'users', label: 'Foydalanuvchilar', icon: Users },
       { id: 'roles', label: 'Role & Permissions', icon: Lock },
+      { id: 'audit_log', label: 'Audit Log', icon: ClipboardList },
+      { id: 'api_keys', label: 'API Keys', icon: KeyRound },
       { id: 'companies', label: 'Kompaniyalar', icon: Building2 },
       { id: 'teams', label: 'Jamoalar', icon: UsersRound },
     ],
@@ -109,6 +121,8 @@ const navSections = [
     title: 'Moliya',
     items: [
       { id: 'financials', label: 'To\'lovlar & Obuna', icon: CreditCard },
+      { id: 'promo_codes', label: 'Promo Kodlar', icon: Tag },
+      { id: 'email_templates', label: 'Email Templates', icon: MailOpen },
       { id: 'notifications', label: 'Bildirishnomalar', icon: Bell },
     ],
   },
@@ -120,6 +134,7 @@ const navSections = [
       { id: 'health', label: 'Platform Health', icon: Activity },
       { id: 'api_endpoints', label: 'API Endpoints', icon: Globe },
       { id: 'websocket', label: 'WebSocket Monitor', icon: Radio },
+      { id: 'container_logs', label: 'Konteyner Loglari', icon: Terminal },
       { id: 'settings', label: 'Sozlamalar', icon: Settings },
     ],
   },
@@ -139,6 +154,10 @@ interface Props {
 export default function AdminLayout({ loggedInUser, onLogout }: Props) {
   const { toasts, addToast } = useAdmin();
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  useEffect(() => {
+    registerSetActiveTab(setActiveTab);
+  }, [setActiveTab]);
   const [logoutModal, setLogoutModal] = useState(false);
   const [apiStatus, setApiStatus] = useState<'healthy' | 'testing'>('healthy');
   const [dbStatus, setDbStatus] = useState<'linked' | 'testing'>('linked');

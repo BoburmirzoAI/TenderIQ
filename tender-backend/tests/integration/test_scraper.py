@@ -2,8 +2,8 @@
 
 import pytest
 
-from app.scraper.cleaner import clean_amount, clean_category, clean_date, clean_region
-from app.scraper.parser import parse_tender_html
+from app.scraper.core.cleaner import clean_amount, clean_category, clean_date, clean_region
+from app.scraper.core.parser import parse_tender_html
 
 
 class TestParserWithHTML:

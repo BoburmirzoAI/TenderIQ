@@ -445,7 +445,8 @@ class HealthOverview(BaseModel):
 class BroadcastRequest(BaseModel):
     title: str
     message: str
-    channels: List[str]
+    channels: List[str] = ["in_app"]
+    channel: Optional[str] = None
     target: str = "all"
     plan_filter: Optional[str] = None
 

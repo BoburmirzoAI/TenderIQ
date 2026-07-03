@@ -1,357 +1,432 @@
-import { useState, useRef } from 'react';
-import { FileText, Upload, CheckCircle, XCircle, AlertTriangle, FileSpreadsheet, File, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { FileText, Upload, X, RefreshCw, Trash2, Download, Search, CheckCircle, AlertTriangle, XCircle, Shield, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAdmin } from '../hooks/useAdmin';
+import { documentsApi, type AdminDocumentCheck, type DocumentStats, type DocCheckItem } from '../api/admin';
 
-interface ChecklistItem {
-  name: string;
-  status: 'pass' | 'fail';
-}
-
-interface DocumentCheck {
-  id: number;
-  filename: string;
-  tender: string;
-  compliance: number;
-  issues: number;
-  checked_at: string;
-  checklist: ChecklistItem[];
-  missingItems: string[];
-}
-
-const mockChecks: DocumentCheck[] = [
-  { id: 1, filename: 'ariza_forma.pdf', tender: 'IT uskunalar yetkazish', compliance: 95, issues: 1, checked_at: '2026-06-16 14:30', checklist: [{ name: 'Ariza formasi to\'ldirilgan', status: 'pass' }, { name: 'Imzo va muhr mavjud', status: 'pass' }, { name: 'STIR ko\'rsatilgan', status: 'pass' }, { name: 'Litsenziya nusxasi', status: 'fail' }], missingItems: ['Litsenziya nusxasi ilova qilinmagan'] },
-  { id: 2, filename: 'texnik_taklif.docx', tender: 'Binoni ta\'mirlash', compliance: 88, issues: 2, checked_at: '2026-06-15 10:15', checklist: [{ name: 'Texnik spetsifikatsiya', status: 'pass' }, { name: 'Ish jadvali', status: 'fail' }, { name: 'Xodimlar ro\'yxati', status: 'pass' }, { name: 'Mashina-mexanizmlar', status: 'fail' }], missingItems: ['Ish jadvali tushirilmagan', 'Mashina-mexanizmlar ro\'yxati yo\'q'] },
-  { id: 3, filename: 'moliyaviy_taklif.xlsx', tender: 'Dori vositalari', compliance: 100, issues: 0, checked_at: '2026-06-14 16:45', checklist: [{ name: 'Narxlar jadvali', status: 'pass' }, { name: 'QQS hisobi', status: 'pass' }, { name: 'Yetkazib berish shartlari', status: 'pass' }], missingItems: [] },
-  { id: 4, filename: 'sertifikatlar.zip', tender: 'Server jihozlari', compliance: 75, issues: 3, checked_at: '2026-06-13 09:00', checklist: [{ name: 'ISO 9001', status: 'pass' }, { name: 'ISO 27001', status: 'fail' }, { name: 'Mahalliy sertifikat', status: 'fail' }, { name: 'Kafolat xati', status: 'pass' }, { name: 'Ishlab chiqaruvchi xati', status: 'fail' }], missingItems: ['ISO 27001 sertifikati', 'Mahalliy sertifikat', 'Ishlab chiqaruvchi vakolatnomasi'] },
-  { id: 5, filename: 'shartnoma_loyiha.pdf', tender: 'Transport xizmatlari', compliance: 92, issues: 1, checked_at: '2026-06-12 11:30', checklist: [{ name: 'Shartnoma shartlari', status: 'pass' }, { name: 'Jarimalar bo\'limi', status: 'pass' }, { name: 'Kafolat muddati', status: 'fail' }, { name: 'To\'lov shartlari', status: 'pass' }], missingItems: ['Kafolat muddati ko\'rsatilmagan'] },
-  { id: 6, filename: 'kvalifikatsiya.pdf', tender: 'Maktab inventari', compliance: 100, issues: 0, checked_at: '2026-06-11 15:00', checklist: [{ name: 'Tajriba ma\'lumotnomasi', status: 'pass' }, { name: 'Moliyaviy hisobot', status: 'pass' }, { name: 'Bank ma\'lumotnomasi', status: 'pass' }], missingItems: [] },
-  { id: 7, filename: 'texnik_tavsif.pdf', tender: 'Oziq-ovqat yetkazish', compliance: 82, issues: 2, checked_at: '2026-06-10 13:20', checklist: [{ name: 'Mahsulot ro\'yxati', status: 'pass' }, { name: 'Sifat sertifikati', status: 'fail' }, { name: 'Sanitariya ruxsatnomasi', status: 'pass' }, { name: 'Saqlash shartlari', status: 'fail' }], missingItems: ['Sifat sertifikati', 'Saqlash shartlari tavsifi'] },
-  { id: 8, filename: 'bank_kafolat.pdf', tender: 'Yo\'l ta\'mirlash', compliance: 100, issues: 0, checked_at: '2026-06-09 08:45', checklist: [{ name: 'Bank kafolat xati', status: 'pass' }, { name: 'Summasi to\'g\'ri', status: 'pass' }, { name: 'Amal qilish muddati', status: 'pass' }], missingItems: [] },
-];
-
-const getFileIcon = (filename: string) => {
-  if (filename.endsWith('.pdf')) return <FileText size={16} style={{ color: 'var(--red)', flexShrink: 0 }} />;
-  if (filename.endsWith('.xlsx') || filename.endsWith('.xls') || filename.endsWith('.csv')) return <FileSpreadsheet size={16} style={{ color: 'var(--green)', flexShrink: 0 }} />;
-  return <File size={16} style={{ color: 'var(--text-4)', flexShrink: 0 }} />;
+const statusIcon = (s: string) => {
+  if (s === 'pass') return <CheckCircle size={15} style={{ color: 'var(--green)', flexShrink: 0 }} />;
+  if (s === 'warn') return <AlertTriangle size={15} style={{ color: 'var(--yellow)', flexShrink: 0 }} />;
+  return <XCircle size={15} style={{ color: 'var(--red)', flexShrink: 0 }} />;
 };
 
-const totalChecks = mockChecks.length;
-const avgCompliance = Math.round(mockChecks.reduce((s, c) => s + c.compliance, 0) / totalChecks);
-const totalIssues = mockChecks.reduce((s, c) => s + c.issues, 0);
+const statusLabel = (s: string) => {
+  if (s === 'pass') return 'Topildi';
+  if (s === 'warn') return 'Noaniq';
+  return 'Topilmadi';
+};
 
-const tdStyle: React.CSSProperties = { padding: '12px 16px', verticalAlign: 'middle' };
+const scoreColor = (score: number) => {
+  if (score >= 80) return 'var(--green)';
+  if (score >= 50) return 'var(--yellow)';
+  return 'var(--red)';
+};
+
+const scoreBg = (score: number) => {
+  if (score >= 80) return 'rgba(16, 185, 129, 0.1)';
+  if (score >= 50) return 'rgba(245, 158, 11, 0.1)';
+  return 'rgba(239, 68, 68, 0.1)';
+};
+
+const fmtDate = (d: string) => {
+  try { return new Date(d).toLocaleString('uz', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+  catch { return d?.slice(0, 16) ?? '—'; }
+};
 
 export default function Documents() {
   const { addToast } = useAdmin();
-  const [tab, setTab] = useState<'analysis' | 'history'>('analysis');
-  const [selectedCheck, setSelectedCheck] = useState<DocumentCheck | null>(mockChecks[0]);
-  const [detailCheck, setDetailCheck] = useState<DocumentCheck | null>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [docs, setDocs] = useState<AdminDocumentCheck[]>([]);
+  const [stats, setStats] = useState<DocumentStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDoc, setSelectedDoc] = useState<AdminDocumentCheck | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [list, s] = await Promise.all([documentsApi.list(100), documentsApi.stats()]);
+      setDocs(list);
+      setStats(s);
+    } catch {
+      addToast('Xatolik', "Ma'lumot yuklanmadi", 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => { load(); }, []);
+
+  const checkFile = async (file: globalThis.File) => {
+    setChecking(true);
+    try {
+      const result = await documentsApi.check(file);
+      setDocs(prev => [result, ...prev]);
+      setSelectedDoc(result);
+      addToast('Tekshirildi', `${file.name} — ${result.compliance_score}%`, result.compliance_score >= 80 ? 'success' : 'warning');
+      const s = await documentsApi.stats();
+      setStats(s);
+    } catch (err: any) {
+      addToast('Xatolik', err?.response?.data?.detail || 'Tekshirib bo\'lmadi', 'error');
+    } finally {
+      setChecking(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      const names = files.map(f => f.name);
-      setUploadedFiles(prev => [...prev, ...names]);
-      addToast('Hujjat yuklandi', `${names.join(', ')} muvaffaqiyatli yuklandi`, 'success');
-      setTimeout(() => addToast('Tahlil tugadi', 'Hujjat tahlili yakunlandi', 'success'), 2000);
-    }
-    // reset so same file can be re-selected
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    const f = e.target.files?.[0];
+    if (f) checkFile(f);
   };
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files[0];
+    if (f) checkFile(f);
   };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await documentsApi.delete(deleteId);
+      setDocs(prev => prev.filter(d => d.id !== deleteId));
+      if (selectedDoc?.id === deleteId) setSelectedDoc(null);
+      setDeleteId(null);
+      addToast("O'chirildi", "Natija o'chirildi", 'info');
+      const s = await documentsApi.stats();
+      setStats(s);
+    } catch {
+      addToast('Xatolik', "O'chirishda xato", 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const toggleRow = (id: number) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const filtered = docs.filter(d =>
+    !searchQuery || d.filename.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+        <RefreshCw size={24} className="animate-spin" style={{ color: 'var(--text-4)' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
+      <input ref={fileInputRef} type="file" style={{ display: 'none' }} accept=".pdf,.doc,.docx" onChange={handleFileChange} />
+
       <div className="flex-between mb-24">
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-0)' }}>Hujjat tahlili</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Tender hujjatlarini tekshirish va tahlil qilish</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Shield size={24} style={{ color: 'var(--primary)' }} />
+            Hujjat tekshiruvi
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>
+            Tender hujjatlarini compliance tekshiruvi — imzo, muhr, STIR, forma to'ldirilganlik
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-ghost btn-sm" onClick={load}><RefreshCw size={13} /></button>
+          <button className="btn btn-primary" onClick={() => fileInputRef.current?.click()} disabled={checking}>
+            {checking ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
+            Hujjat tekshirish
+          </button>
         </div>
       </div>
 
-      <div className="grid-3 mb-24">
-        <div className="card stat-card" style={{ border: '1px solid var(--border)' }}>
-          <div className="flex-between mb-8">
-            <span className="stat-label">Jami tekshiruvlar</span>
-            <FileText size={16} style={{ color: 'var(--blue)' }} />
+      {/* Stats */}
+      <div className="grid-4 mb-24">
+        {[
+          { label: 'Jami tekshiruvlar', value: stats?.total_checks ?? 0, color: 'var(--primary)' },
+          { label: "O'rtacha ball", value: `${stats?.avg_compliance ?? 0}%`, color: scoreColor(stats?.avg_compliance ?? 0) },
+          { label: 'Muammolar', value: stats?.total_issues ?? 0, color: 'var(--red)' },
+          { label: "To'liq mos", value: stats?.full_compliance ?? 0, color: 'var(--green)' },
+        ].map(s => (
+          <div key={s.label} className="card stat-card">
+            <div className="stat-label mb-8">{s.label}</div>
+            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
           </div>
-          <div className="stat-value">{totalChecks + uploadedFiles.length}</div>
-        </div>
-        <div className="card stat-card" style={{ border: '1px solid var(--border)' }}>
-          <div className="flex-between mb-8">
-            <span className="stat-label">O'rtacha muvofiqlik</span>
-            <CheckCircle size={16} style={{ color: 'var(--green)' }} />
-          </div>
-          <div className="stat-value">{avgCompliance}%</div>
-        </div>
-        <div className="card stat-card" style={{ border: '1px solid var(--border)' }}>
-          <div className="flex-between mb-8">
-            <span className="stat-label">Jami muammolar</span>
-            <AlertTriangle size={16} style={{ color: 'var(--orange)' }} />
-          </div>
-          <div className="stat-value">{totalIssues}</div>
+        ))}
+      </div>
+
+      {/* Upload zone */}
+      <div
+        className="card mb-24"
+        style={{
+          border: dragOver ? '2px dashed var(--primary)' : '2px dashed var(--border-1)',
+          background: dragOver ? 'var(--primary-soft)' : 'transparent',
+          transition: 'all 0.2s',
+          cursor: 'pointer',
+        }}
+        onClick={() => !checking && fileInputRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+      >
+        <div style={{ padding: '32px', textAlign: 'center' }}>
+          {checking ? (
+            <>
+              <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--primary)', marginBottom: '8px' }} />
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--primary)' }}>Hujjat tahlil qilinmoqda...</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-4)', marginTop: '4px' }}>PDF mazmuni tekshirilmoqda: imzo, muhr, STIR, forma</p>
+            </>
+          ) : (
+            <>
+              <Upload size={32} style={{ color: dragOver ? 'var(--primary)' : 'var(--text-4)', marginBottom: '8px' }} />
+              <p style={{ fontSize: '14px', fontWeight: 600, color: dragOver ? 'var(--primary)' : 'var(--text-2)' }}>
+                Tender hujjatni shu yerga tashlang yoki bosib tanlang
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-4)', marginTop: '4px' }}>
+                PDF formatda yuklang — hujjat mazmuni tahlil qilinadi (imzo, muhr, STIR, sana, summa, forma)
+              </p>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="tabs mb-24">
-        <button className={`tab ${tab === 'analysis' ? 'active' : ''}`} onClick={() => setTab('analysis')}>Hujjat tahlili</button>
-        <button className={`tab ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>Tekshiruv tarixi</button>
-      </div>
-
-      {tab === 'analysis' && (
-        <div className="grid-2" style={{ gap: '24px' }}>
-          <div>
-            {/* Upload Area */}
-            <div className="card mb-24" style={{ border: '1px solid var(--border)' }}>
-              <div
-                className="card-body"
-                style={{ textAlign: 'center', padding: '32px', border: '2px dashed var(--border)', borderRadius: '8px', cursor: 'pointer', transition: 'background 0.15s' }}
-                onClick={handleUploadClick}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-1)')}
-                onMouseLeave={e => (e.currentTarget.style.background = '')}
-              >
-                <Upload size={32} style={{ color: 'var(--primary)', marginBottom: '12px' }} />
-                <p style={{ fontWeight: 600, color: 'var(--text-0)', marginBottom: '4px' }}>Hujjat yuklash</p>
-                <p style={{ fontSize: '12px', color: 'var(--text-3)' }}>PDF, DOCX, XLSX formatlarida — bosing yoki tashlang</p>
-                {uploadedFiles.length > 0 && (
-                  <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {uploadedFiles.map((f, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', fontSize: '12px', color: 'var(--green)' }}>
-                        {getFileIcon(f)} {f}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.docx,.xlsx,.xls,.csv"
-                multiple
-                style={{ display: 'none' }}
-                onChange={handleFileChange}
-              />
-            </div>
-
-            {/* Checklist Detail */}
-            {selectedCheck && (
-              <div className="card" style={{ border: '1px solid var(--border)' }}>
-                <div className="card-body">
-                  <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-0)' }}>
-                    Tekshiruv natijalari: <span style={{ fontFamily: 'monospace' }}>{selectedCheck.filename}</span>
-                  </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                    <div style={{
-                      width: '60px', height: '60px', borderRadius: '50%',
-                      background: selectedCheck.compliance >= 90 ? 'var(--green-soft)' : selectedCheck.compliance >= 70 ? 'var(--yellow-soft)' : 'var(--red-soft)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 800, fontSize: '18px',
-                      color: selectedCheck.compliance >= 90 ? 'var(--green)' : selectedCheck.compliance >= 70 ? 'var(--yellow)' : 'var(--red)',
-                      border: `2px solid ${selectedCheck.compliance >= 90 ? 'var(--green)' : selectedCheck.compliance >= 70 ? 'var(--yellow)' : 'var(--red)'}`,
-                      flexShrink: 0,
-                    }}>
-                      {selectedCheck.compliance}%
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text-0)', marginBottom: '4px' }}>Muvofiqlik darajasi</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{selectedCheck.issues} ta muammo topildi</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-4)' }}>{selectedCheck.checked_at}</div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {selectedCheck.checklist.map((item, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: 'var(--bg-1)', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                        {item.status === 'pass'
-                          ? <CheckCircle size={16} style={{ color: 'var(--green)', flexShrink: 0 }} />
-                          : <XCircle size={16} style={{ color: 'var(--red)', flexShrink: 0 }} />
-                        }
-                        <span style={{ fontSize: '13px', color: 'var(--text-0)', flex: 1 }}>{item.name}</span>
-                        <span className={`badge ${item.status === 'pass' ? 'badge-green' : 'badge-red'}`}>
-                          {item.status === 'pass' ? 'O\'tdi' : 'O\'tmadi'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {selectedCheck.missingItems.length > 0 && (
-                    <div style={{ marginTop: '16px', background: 'var(--red-soft)', borderRadius: '8px', padding: '12px', border: '1px solid var(--red)' }}>
-                      <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--red)', marginBottom: '8px' }}>Yetishmayotgan hujjatlar:</h4>
-                      <ul style={{ paddingLeft: '20px', margin: 0 }}>
-                        {selectedCheck.missingItems.map((item, i) => (
-                          <li key={i} style={{ fontSize: '13px', color: 'var(--text-2)', marginBottom: '4px' }}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+      {/* Layout: list + detail */}
+      <div style={{ display: 'grid', gridTemplateColumns: selectedDoc ? '1fr 420px' : '1fr', gap: '16px' }}>
+        <div>
+          {/* Search */}
+          {docs.length > 0 && (
+            <div className="card mb-16">
+              <div className="card-body" style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)' }} />
+                  <input className="input" placeholder="Fayl nomini qidirish..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ paddingLeft: '32px', width: '100%' }} />
                 </div>
+                <span style={{ fontSize: '12px', color: 'var(--text-4)', alignSelf: 'center' }}>{filtered.length} ta</span>
+              </div>
+            </div>
+          )}
+
+          {/* Results list */}
+          <div className="card">
+            {filtered.length === 0 ? (
+              <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-4)' }}>
+                <Shield size={48} style={{ marginBottom: '12px', opacity: 0.15 }} />
+                <p style={{ fontSize: '14px' }}>{docs.length === 0 ? 'Hali hujjat tekshirilmagan' : 'Qidiruv natijasi topilmadi'}</p>
+                <p style={{ fontSize: '12px', marginTop: '4px' }}>Yuqoridagi tugmani bosib tender hujjatni yuklang</p>
+              </div>
+            ) : (
+              <div>
+                {filtered.map(d => {
+                  const expanded = expandedRows.has(d.id);
+                  return (
+                    <div key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      {/* Row header */}
+                      <div
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
+                          cursor: 'pointer',
+                          background: selectedDoc?.id === d.id ? 'var(--bg-active)' : undefined,
+                        }}
+                        onClick={() => setSelectedDoc(selectedDoc?.id === d.id ? null : d)}
+                      >
+                        {/* Score circle */}
+                        <div style={{
+                          width: '44px', height: '44px', borderRadius: '50%',
+                          background: scoreBg(d.compliance_score),
+                          border: `2px solid ${scoreColor(d.compliance_score)}`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontWeight: 800, fontSize: '13px', color: scoreColor(d.compliance_score),
+                          flexShrink: 0,
+                        }}>
+                          {Math.round(d.compliance_score)}%
+                        </div>
+
+                        {/* File info */}
+                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                          <div style={{ fontWeight: 600, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <FileText size={13} style={{ marginRight: '6px', verticalAlign: 'text-bottom', color: 'var(--text-4)' }} />
+                            {d.filename}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-4)', marginTop: '2px', display: 'flex', gap: '12px' }}>
+                            <span>{(d.file_type || '').toUpperCase()}</span>
+                            <span>{d.file_size_kb ? `${d.file_size_kb} KB` : ''}</span>
+                            <span>{fmtDate(d.created_at)}</span>
+                          </div>
+                        </div>
+
+                        {/* Mini checklist summary */}
+                        <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+                          {d.checklist.slice(0, 5).map((c, i) => (
+                            <div key={i} style={{
+                              width: '8px', height: '8px', borderRadius: '50%',
+                              background: c.status === 'pass' ? 'var(--green)' : c.status === 'warn' ? 'var(--yellow)' : 'var(--red)',
+                            }} title={c.name} />
+                          ))}
+                        </div>
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
+                          <button className="btn-icon" onClick={() => toggleRow(d.id)} title="Checklist">
+                            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          </button>
+                          <button className="btn-icon" onClick={() => documentsApi.download(d.id, d.filename).catch(() => addToast('Xatolik', 'Yuklab olishda xato', 'error'))} title="Yuklab olish">
+                            <Download size={14} />
+                          </button>
+                          <button className="btn-icon" onClick={() => setDeleteId(d.id)} title="O'chirish">
+                            <Trash2 size={14} style={{ color: 'var(--red)' }} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Expanded checklist */}
+                      {expanded && (
+                        <div style={{ padding: '0 16px 14px 72px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {d.checklist.map((c, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                                {statusIcon(c.status)}
+                                <span style={{ fontWeight: 500 }}>{c.name}</span>
+                                <span style={{ color: c.status === 'pass' ? 'var(--green)' : c.status === 'warn' ? 'var(--yellow)' : 'var(--red)', fontWeight: 600 }}>
+                                  — {statusLabel(c.status)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          {d.missing_items.length > 0 && (
+                            <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(239, 68, 68, 0.06)', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
+                              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--red)', marginBottom: '4px' }}>Kamchiliklar:</div>
+                              {d.missing_items.map((m, i) => (
+                                <div key={i} style={{ fontSize: '11px', color: 'var(--text-3)', padding: '1px 0' }}>• {m}</div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
-
-          {/* Right: file list */}
-          <div className="card" style={{ border: '1px solid var(--border)' }}>
-            <div className="card-body">
-              <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-0)' }}>So'nggi tekshiruvlar</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {mockChecks.map((check) => (
-                  <div
-                    key={check.id}
-                    style={{
-                      padding: '12px 14px', borderRadius: '8px', cursor: 'pointer',
-                      background: selectedCheck?.id === check.id ? 'var(--primary-soft)' : 'var(--bg-1)',
-                      border: selectedCheck?.id === check.id ? '1px solid var(--primary)' : '1px solid var(--border)',
-                      transition: 'border-color 0.15s',
-                    }}
-                    onClick={() => setSelectedCheck(check)}
-                  >
-                    <div className="flex-between">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                        {getFileIcon(check.filename)}
-                        <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{check.filename}</span>
-                      </div>
-                      <span className={`badge ${check.compliance >= 90 ? 'badge-green' : check.compliance >= 70 ? 'badge-yellow' : 'badge-red'}`} style={{ flexShrink: 0, marginLeft: '8px' }}>
-                        {check.compliance}%
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '4px' }}>{check.tender}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-4)', marginTop: '2px' }}>{check.checked_at}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
-      )}
 
-      {tab === 'history' && (
-        <div className="card" style={{ border: '1px solid var(--border)' }}>
-          <div className="table-wrap">
-            <table className="table" style={{ tableLayout: 'fixed', width: '100%' }}>
-              <colgroup>
-                <col style={{ width: '200px' }} />
-                <col style={{ width: '180px' }} />
-                <col style={{ width: '110px' }} />
-                <col style={{ width: '100px' }} />
-                <col style={{ width: '160px' }} />
-                <col style={{ width: '80px' }} />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th style={tdStyle}>Fayl nomi</th>
-                  <th style={tdStyle}>Tender</th>
-                  <th style={tdStyle}>Muvofiqlik</th>
-                  <th style={tdStyle}>Muammolar</th>
-                  <th style={tdStyle}>Tekshirilgan</th>
-                  <th style={tdStyle}>Ko'rish</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockChecks.map((check) => (
-                  <tr key={check.id} style={{ cursor: 'pointer', borderBottom: '1px solid var(--border)' }} onClick={() => setDetailCheck(check)}>
-                    <td style={tdStyle}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                        {getFileIcon(check.filename)}
-                        <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{check.filename}</span>
-                      </div>
-                    </td>
-                    <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{check.tender}</td>
-                    <td style={tdStyle}>
-                      <span className={`badge ${check.compliance >= 90 ? 'badge-green' : check.compliance >= 70 ? 'badge-yellow' : 'badge-red'}`}>
-                        {check.compliance}%
-                      </span>
-                    </td>
-                    <td style={tdStyle}>
-                      {check.issues > 0
-                        ? <span style={{ color: 'var(--red)', fontWeight: 600 }}>{check.issues} ta</span>
-                        : <span style={{ color: 'var(--green)' }}>Yo'q</span>
-                      }
-                    </td>
-                    <td style={{ ...tdStyle, fontSize: '12px', color: 'var(--text-3)' }}>{check.checked_at}</td>
-                    <td style={tdStyle}>
-                      <button className="btn btn-sm btn-ghost" onClick={(e) => { e.stopPropagation(); setDetailCheck(check); }}>
-                        Ko'rish
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Detail Modal */}
-      {detailCheck && (
-        <div className="modal-overlay" onClick={() => setDetailCheck(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
-            <div className="modal-header">
-              <div style={{ flex: 1, paddingRight: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  {getFileIcon(detailCheck.filename)}
-                  <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-0)' }}>{detailCheck.filename}</h2>
-                </div>
-                <div style={{ fontSize: '13px', color: 'var(--text-3)' }}>{detailCheck.tender}</div>
-              </div>
-              <button className="btn btn-sm btn-ghost" onClick={() => setDetailCheck(null)}><X size={14} /></button>
+        {/* Detail panel */}
+        {selectedDoc && (
+          <div className="card" style={{ alignSelf: 'start', position: 'sticky', top: '80px' }}>
+            <div className="card-header flex-between">
+              <h3 style={{ fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Eye size={14} style={{ color: 'var(--primary)' }} /> Tekshiruv natijasi
+              </h3>
+              <button className="btn-icon" onClick={() => setSelectedDoc(null)}><X size={16} /></button>
             </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Compliance score */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: detailCheck.compliance >= 90 ? 'var(--green-soft)' : detailCheck.compliance >= 70 ? 'var(--yellow-soft)' : 'var(--red-soft)', borderRadius: '10px', border: `1px solid ${detailCheck.compliance >= 90 ? 'var(--green)' : detailCheck.compliance >= 70 ? 'var(--yellow)' : 'var(--red)'}` }}>
-                <div style={{
-                  width: '64px', height: '64px', borderRadius: '50%', background: 'white',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 800, fontSize: '20px',
-                  color: detailCheck.compliance >= 90 ? 'var(--green)' : detailCheck.compliance >= 70 ? 'var(--yellow)' : 'var(--red)',
-                  flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                }}>
-                  {detailCheck.compliance}%
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+              {/* Score */}
+              <div style={{
+                textAlign: 'center', padding: '20px',
+                background: scoreBg(selectedDoc.compliance_score),
+                borderRadius: '12px', border: `1px solid ${scoreColor(selectedDoc.compliance_score)}20`,
+              }}>
+                <div style={{ fontSize: '36px', fontWeight: 900, color: scoreColor(selectedDoc.compliance_score) }}>
+                  {Math.round(selectedDoc.compliance_score)}%
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-0)', marginBottom: '4px' }}>Muvofiqlik darajasi</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-2)' }}>{detailCheck.issues} ta muammo topildi</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-4)', marginTop: '2px' }}>Tekshirilgan: {detailCheck.checked_at}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '4px' }}>
+                  Compliance ball — {selectedDoc.compliance_score >= 80 ? "Yaxshi" : selectedDoc.compliance_score >= 50 ? "O'rtacha" : "Past"}
+                </div>
+              </div>
+
+              {/* File info */}
+              <div style={{ padding: '12px', background: 'var(--bg-0)', borderRadius: '8px', border: '1px solid var(--border-1)' }}>
+                <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {selectedDoc.filename}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-4)', display: 'flex', gap: '12px' }}>
+                  <span>{(selectedDoc.file_type || '').toUpperCase()}</span>
+                  <span>{selectedDoc.file_size_kb} KB</span>
+                  <span>{fmtDate(selectedDoc.created_at)}</span>
                 </div>
               </div>
 
               {/* Checklist */}
               <div>
-                <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-0)', marginBottom: '10px' }}>Tekshiruv ro'yxati</h4>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-2)', marginBottom: '8px' }}>Tekshiruv natijalari</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {detailCheck.checklist.map((item, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: 'var(--bg-1)', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                      {item.status === 'pass'
-                        ? <CheckCircle size={16} style={{ color: 'var(--green)', flexShrink: 0 }} />
-                        : <XCircle size={16} style={{ color: 'var(--red)', flexShrink: 0 }} />
-                      }
-                      <span style={{ fontSize: '13px', color: 'var(--text-0)', flex: 1 }}>{item.name}</span>
-                      <span className={`badge ${item.status === 'pass' ? 'badge-green' : 'badge-red'}`}>
-                        {item.status === 'pass' ? 'O\'tdi' : 'O\'tmadi'}
-                      </span>
+                  {selectedDoc.checklist.map((c: DocCheckItem, i: number) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px',
+                      background: c.status === 'pass' ? 'rgba(16, 185, 129, 0.05)' : c.status === 'warn' ? 'rgba(245, 158, 11, 0.05)' : 'rgba(239, 68, 68, 0.05)',
+                      borderRadius: '8px',
+                      border: `1px solid ${c.status === 'pass' ? 'rgba(16, 185, 129, 0.15)' : c.status === 'warn' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`,
+                    }}>
+                      {statusIcon(c.status)}
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600 }}>{c.name}</div>
+                        {c.detail && <div style={{ fontSize: '11px', color: 'var(--text-4)', marginTop: '2px' }}>{c.detail}</div>}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Missing items */}
-              {detailCheck.missingItems.length > 0 && (
-                <div style={{ background: 'var(--red-soft)', borderRadius: '8px', padding: '14px', border: '1px solid var(--red)' }}>
-                  <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--red)', marginBottom: '8px' }}>Yetishmayotgan hujjatlar:</h4>
-                  <ul style={{ paddingLeft: '20px', margin: 0 }}>
-                    {detailCheck.missingItems.map((item, i) => (
-                      <li key={i} style={{ fontSize: '13px', color: 'var(--text-2)', marginBottom: '4px' }}>{item}</li>
-                    ))}
-                  </ul>
+              {selectedDoc.missing_items.length > 0 && (
+                <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.06)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--red)', marginBottom: '6px' }}>
+                    ⚠ Topilgan kamchiliklar ({selectedDoc.missing_items.length})
+                  </div>
+                  {selectedDoc.missing_items.map((m, i) => (
+                    <div key={i} style={{ fontSize: '12px', color: 'var(--text-2)', padding: '3px 0', display: 'flex', gap: '6px' }}>
+                      <XCircle size={12} style={{ color: 'var(--red)', marginTop: '2px', flexShrink: 0 }} />
+                      {m}
+                    </div>
+                  ))}
                 </div>
               )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => documentsApi.download(selectedDoc.id, selectedDoc.filename).catch(() => addToast('Xatolik', 'Yuklab olishda xato', 'error'))}>
+                  <Download size={14} /> Yuklab olish
+                </button>
+                <button className="btn btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} onClick={() => setDeleteId(selectedDoc.id)}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Delete confirm */}
+      {deleteId && (
+        <div className="modal-overlay" onClick={() => setDeleteId(null)}>
+          <div className="modal" style={{ maxWidth: '380px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 700, color: 'var(--red)' }}>Natijani o'chirish</h3>
+              <button className="btn-icon" onClick={() => setDeleteId(null)}><X size={18} /></button>
+            </div>
+            <div className="modal-body" style={{ padding: '20px', textAlign: 'center' }}>
+              <Trash2 size={32} style={{ color: 'var(--red)', marginBottom: '12px', opacity: 0.6 }} />
+              <p style={{ fontSize: '13px', color: 'var(--text-2)' }}>
+                "{docs.find(d => d.id === deleteId)?.filename}" tekshiruv natijasini o'chirmoqchimisiz?
+              </p>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setDetailCheck(null)}>Yopish</button>
+              <button className="btn btn-ghost" onClick={() => setDeleteId(null)}>Bekor</button>
+              <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />} O'chirish
+              </button>
             </div>
           </div>
         </div>

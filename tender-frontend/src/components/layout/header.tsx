@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, Sun, Moon, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -15,28 +15,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/auth";
-import api from "@/lib/api";
+import { useNotificationStore } from "@/store/notifications";
+import { useTheme } from "next-themes";
 import Link from "next/link";
+import api from "@/lib/api";
 
 export function Header() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout, setUser } = useAuthStore();
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    api
-      .get("/v1/notifications/stats")
-      .then(({ data }) => setUnreadCount(data.data.unread))
-      .catch(() => {});
-    const interval = setInterval(() => {
-      api
-        .get("/v1/notifications/stats")
-        .then(({ data }) => setUnreadCount(data.data.unread))
-        .catch(() => {});
-    }, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const themeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
+  const ThemeIcon = themeIcon;
+  const nextTheme = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
   const initials =
     user?.full_name
       ?.split(" ")
@@ -67,6 +60,18 @@ export function Header() {
           />
         </form>
       </div>
+
+      <button
+        onClick={() => {
+          setTheme(nextTheme);
+          if (user) setUser({ ...user, theme: nextTheme });
+          api.patch("/v1/auth/me", { theme: nextTheme }).catch(() => {});
+        }}
+        title={`Mavzu: ${theme}`}
+        className="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+      >
+        <ThemeIcon className="h-5 w-5" />
+      </button>
 
       <Link
         href="/notifications"

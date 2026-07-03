@@ -210,7 +210,7 @@ export default function JournalPage() {
         <TabsContent value="entries" className="space-y-4">
           {/* Filter */}
           <div className="flex gap-3">
-            <Select value={resultFilter} onValueChange={(v) => { setResultFilter(v); setPage(1); }}>
+            <Select value={resultFilter} onValueChange={(v) => { setResultFilter(v ?? "all"); setPage(1); }}>
               <SelectTrigger className="w-44">
                 <SelectValue placeholder="Natija" />
               </SelectTrigger>

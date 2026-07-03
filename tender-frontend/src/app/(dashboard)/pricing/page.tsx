@@ -136,9 +136,9 @@ export default function PricingPage() {
     setStatsLoading(true);
     try {
       const [catRes, regRes, histRes] = await Promise.all([
-        api.get("/pricing/category-stats"),
-        api.get("/pricing/region-stats"),
-        api.get("/pricing/my-history"),
+        api.get("/v1/pricing/category-stats"),
+        api.get("/v1/pricing/region-stats"),
+        api.get("/v1/pricing/my-history"),
       ]);
       setCategoryStats(catRes.data.data || []);
       setRegionStats(regRes.data.data || []);
@@ -159,7 +159,7 @@ export default function PricingPage() {
     if (!id || id <= 0) return;
     setLoading(true);
     try {
-      const res = await api.get(`/pricing/analyze/${id}`);
+      const res = await api.get(`/v1/pricing/analyze/${id}`);
       setAnalysis(res.data.data);
     } catch {
       setAnalysis(null);

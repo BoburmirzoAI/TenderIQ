@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from app.constants import PLAN_LIMITS, PLAN_PRICES_UZS, SubscriptionPlan
 from app.database import async_session
-from app.models.user import User
+from app.models.auth.user import User
 from bot.keyboards.inline import settings_inline_kb, upgrade_kb
 from bot.keyboards.reply import main_menu_kb
 
