@@ -29,6 +29,7 @@ _FEATURE_FLAGS: dict[str, bool] = {
     "api_access": True,
     "map_view": True,
     "maintenance_mode": False,
+    "uzex_auth": False,
 }
 
 _PLATFORM_CONFIG: dict[str, Any] = {

@@ -1,24 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import {
   Calculator,
   Plus,
   Trash2,
   TrendingUp,
-  TrendingDown,
+
   PiggyBank,
   Percent,
   AlertTriangle,
@@ -107,11 +97,11 @@ export default function BudgetPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em] flex items-center gap-2">
           <Calculator className="h-6 w-6" />
           Byudjet kalkulyator
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground mt-1">
           Tender uchun xarajat va foyda hisoblang
         </p>
       </div>
@@ -120,30 +110,32 @@ export default function BudgetPage() {
         {/* Input section */}
         <div className="space-y-6">
           {/* Tender amount */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Tender ma&apos;lumotlari</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="p-6 pb-3">
+              <h3 className="text-base font-semibold">Tender ma&apos;lumotlari</h3>
+            </div>
+            <div className="px-6 pb-6 space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Tender summasi (UZS)</Label>
-                  <Input
+                  <input
                     type="number"
                     value={tenderAmount}
                     onChange={(e) => setTenderAmount(e.target.value)}
                     placeholder="1 000 000 000"
+                    className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Kutilgan foyda (%)</Label>
-                  <Input
+                  <input
                     type="number"
                     value={marginPercent}
                     onChange={(e) => setMarginPercent(e.target.value)}
                     placeholder="15"
                     min={0}
                     max={100}
+                    className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   />
                 </div>
               </div>
@@ -159,48 +151,51 @@ export default function BudgetPage() {
                   Soliqlarni hisobga olish (QQS + foyda solig&apos;i + ijtimoiy)
                 </Label>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Costs */}
-          <Card>
-            <CardHeader className="pb-3">
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="p-6 pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base">Xarajatlar</CardTitle>
-                  <CardDescription>Barcha kutilgan xarajatlarni kiriting</CardDescription>
+                  <h3 className="text-base font-semibold">Xarajatlar</h3>
+                  <p className="text-sm text-muted-foreground">Barcha kutilgan xarajatlarni kiriting</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={addCost}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  Qo&apos;shish
-                </Button>
+                <button
+                  onClick={addCost}
+                  className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+                >
+                  <span className="flex items-center">
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Qo&apos;shish
+                  </span>
+                </button>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
+            </div>
+            <div className="px-6 pb-6 space-y-3">
               {costs.map((cost) => (
                 <div key={cost.id} className="flex items-center gap-2">
-                  <Input
+                  <input
                     value={cost.name}
                     onChange={(e) => updateCost(cost.id, "name", e.target.value)}
                     placeholder="Xarajat nomi"
-                    className="flex-1"
+                    className="flex-1 h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   />
-                  <Input
+                  <input
                     type="number"
                     value={cost.amount || ""}
                     onChange={(e) => updateCost(cost.id, "amount", e.target.value)}
                     placeholder="Summa"
-                    className="w-44"
+                    className="w-44 h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0 h-9 w-9 hover:text-destructive"
+                  <button
+                    className={`shrink-0 rounded-xl border border-black/10 bg-white/70 backdrop-blur p-2 transition-all hover:bg-white hover:shadow-sm hover:text-destructive dark:border-white/10 dark:bg-white/5 ${costs.length <= 1 ? "opacity-50 cursor-not-allowed" : ""}`}
                     onClick={() => removeCost(cost.id)}
                     disabled={costs.length <= 1}
                   >
                     <Trash2 className="h-4 w-4" />
-                  </Button>
+                  </button>
                 </div>
               ))}
 
@@ -209,19 +204,19 @@ export default function BudgetPage() {
                 <span>Jami xarajatlar:</span>
                 <span>{fmt(calc.totalCosts)} UZS</span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Tax breakdown */}
           {includeTax && calc.tender > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="p-6 pb-3">
+                <h3 className="text-base font-semibold flex items-center gap-2">
                   <Percent className="h-4 w-4" />
                   Soliqlar
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
+                </h3>
+              </div>
+              <div className="px-6 pb-6 space-y-2">
                 {TAX_RATES.map((tax) => (
                   <div key={tax.label} className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{tax.label}</span>
@@ -233,8 +228,8 @@ export default function BudgetPage() {
                   <span>Jami soliq:</span>
                   <span>{fmt(calc.taxTotal)} UZS</span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </div>
 
@@ -242,38 +237,36 @@ export default function BudgetPage() {
         <div className="space-y-4">
           {/* Viability */}
           {calc.tender > 0 && calc.totalCosts > 0 && (
-            <Card className={calc.isViable ? "border-green-200 dark:border-green-900" : "border-red-200 dark:border-red-900"}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  {calc.isViable ? (
-                    <TrendingUp className="h-8 w-8 text-green-500" />
-                  ) : (
-                    <AlertTriangle className="h-8 w-8 text-red-500" />
-                  )}
-                  <div>
-                    <p className="font-semibold">
-                      {calc.isViable ? "Foydali tender" : "Zarar ko'riladi"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {calc.isViable
-                        ? `${calc.profitPercent.toFixed(1)}% sof foyda`
-                        : "Xarajatlar tender summasidan oshib ketdi"}
-                    </p>
-                  </div>
+            <div className={`rounded-2xl border backdrop-blur-xl p-4 transition-all hover:shadow-lg ${calc.isViable ? "border-green-200 bg-white/60 dark:border-green-900 dark:bg-[rgba(17,24,39,0.5)]" : "border-red-200 bg-white/60 dark:border-red-900 dark:bg-[rgba(17,24,39,0.5)]"}`}>
+              <div className="flex items-center gap-3">
+                {calc.isViable ? (
+                  <TrendingUp className="h-8 w-8 text-green-500" />
+                ) : (
+                  <AlertTriangle className="h-8 w-8 text-red-500" />
+                )}
+                <div>
+                  <p className="font-semibold">
+                    {calc.isViable ? "Foydali tender" : "Zarar ko'riladi"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {calc.isViable
+                      ? `${calc.profitPercent.toFixed(1)}% sof foyda`
+                      : "Xarajatlar tender summasidan oshib ketdi"}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Summary cards */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="p-6 pb-3">
+              <h3 className="text-base font-semibold flex items-center gap-2">
                 <PiggyBank className="h-4 w-4" />
                 Natija
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+              </h3>
+            </div>
+            <div className="px-6 pb-6 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Tender summasi</span>
                 <span className="text-sm font-medium">{fmt(calc.tender)} UZS</span>
@@ -297,20 +290,20 @@ export default function BudgetPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Foyda foizi</span>
-                <Badge variant={calc.profitPercent >= 0 ? "default" : "destructive"}>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${calc.profitPercent >= 0 ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f]" : "bg-red-500/10 text-red-600 dark:text-red-400"}`}>
                   {calc.profitPercent.toFixed(1)}%
-                </Badge>
+                </span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Recommendations */}
           {calc.totalCosts > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Tavsiyalar</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="p-6 pb-3">
+                <h3 className="text-base font-semibold">Tavsiyalar</h3>
+              </div>
+              <div className="px-6 pb-6 space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Minimal taklif narxi</span>
                   <span className="font-medium">{fmt(calc.minBid)} UZS</span>
@@ -375,8 +368,8 @@ export default function BudgetPage() {
                     </div>
                   </>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </div>
       </div>

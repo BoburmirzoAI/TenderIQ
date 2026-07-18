@@ -33,7 +33,7 @@ import {
   GraduationCap,
   FileSignature,
   ClipboardList,
-  MessageSquare,
+
   ShieldCheck,
   Phone,
 } from "lucide-react";

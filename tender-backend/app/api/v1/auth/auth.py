@@ -18,6 +18,8 @@ from app.schemas.auth.auth import (
     RegisterRequest,
     ResetPasswordRequest,
     TokenResponse,
+    UzexLoginRequest,
+    UzexRegisterRequest,
     VerifyEmailRequest,
 )
 from app.schemas.base import SuccessResponse
@@ -324,3 +326,118 @@ async def verify_email(
     await cache_service.delete(f"email_verify:{data.token}")
     logger.info("Email verified for user %d", user.id)
     return SuccessResponse(data={"verified": True}, message="Email muvaffaqiyatli tasdiqlandi")
+
+
+@router.get("/mode")
+async def get_auth_mode():
+    """Return current authentication mode (public, no auth required)."""
+    from app.api.v1.admin.system.settings import _FEATURE_FLAGS
+    uzex_enabled = _FEATURE_FLAGS.get("uzex_auth", False)
+    return SuccessResponse(data={"mode": "uzex" if uzex_enabled else "basic"})
+
+
+def _require_uzex_enabled() -> None:
+    """Raise 403 if UZEX auth mode is not enabled."""
+    from app.api.v1.admin.system.settings import _FEATURE_FLAGS
+    if not _FEATURE_FLAGS.get("uzex_auth", False):
+        raise HTTPException(status_code=403, detail="UZEX autentifikatsiya rejimi yoqilmagan")
+
+
+@router.post("/uzex-register", response_model=SuccessResponse[TokenResponse])
+async def uzex_register(request: Request, data: UzexRegisterRequest, db: AsyncSession = Depends(get_db)):
+    """Register via UZEX-style flow with organization details."""
+    _require_uzex_enabled()
+    await _check_rate_limit(request, "uzex_register", limit=5, window=3600)
+
+    user_repo = UserRepository(db)
+
+    if await user_repo.email_exists(data.email):
+        raise HTTPException(status_code=409, detail="Bu email allaqachon ro'yxatdan o'tgan")
+    if await user_repo.inn_exists(data.inn):
+        raise HTTPException(status_code=409, detail="Bu INN allaqachon ro'yxatdan o'tgan")
+    if data.eri_key_serial and await user_repo.eri_key_exists(data.eri_key_serial):
+        raise HTTPException(status_code=409, detail="Bu ERI kalit allaqachon ro'yxatdan o'tgan")
+
+    from app.utils.security import hash_password
+    user = await user_repo.create({
+        "email": data.email,
+        "hashed_password": hash_password(data.password),
+        "full_name": data.director_name,
+        "phone": data.phone,
+        "auth_type": "uzex",
+        "inn": data.inn,
+        "mfo": data.mfo,
+        "organization_name": data.organization_name,
+        "account_number": data.account_number,
+        "region": data.region,
+        "district": data.district,
+        "address": data.address,
+        "director_name": data.director_name,
+        "eri_key_serial": data.eri_key_serial,
+        "usb_token_id": data.usb_token_id,
+    })
+
+    from app.repositories.finance.subscription_repo import SubscriptionRepository
+    from app.constants import SubscriptionPlan
+    from datetime import datetime, timezone
+    sub_repo = SubscriptionRepository(db)
+    await sub_repo.create({
+        "user_id": user.id,
+        "plan": SubscriptionPlan.FREE.value,
+        "is_active": True,
+        "starts_at": datetime.now(timezone.utc),
+    })
+
+    try:
+        from app.config import settings as app_settings
+        from app.utils.security import decode_token
+        service = AuthService(db)
+        tokens = service._create_tokens(user.id, user.token_version)
+        payload = decode_token(tokens.access_token)
+        user_id = payload.get("sub")
+        verify_token = secrets.token_urlsafe(32)
+        await cache_service.set(f"email_verify:{verify_token}", str(user_id), expire=86400)
+        verify_url = f"{app_settings.FRONTEND_URL}/verify-email?token={verify_token}"
+        notif = NotificationService()
+        await notif.send_email_verification(data.email, data.director_name, verify_url)
+    except Exception as exc:
+        logger.warning("Failed to send verification email to %s: %s", data.email, exc)
+
+    logger.info("UZEX user registered: %s (INN: %s)", user.email, data.inn)
+    service = AuthService(db)
+    return SuccessResponse(data=service._create_tokens(user.id, user.token_version), message="Ro'yxatdan o'tish muvaffaqiyatli")
+
+
+@router.post("/uzex-login", response_model=SuccessResponse[TokenResponse])
+async def uzex_login(request: Request, data: UzexLoginRequest, db: AsyncSession = Depends(get_db)):
+    """Login via UZEX-style: INN+password or ERI key / USB token."""
+    _require_uzex_enabled()
+    await _check_rate_limit(request, "uzex_login", limit=10, window=300)
+
+    user_repo = UserRepository(db)
+    user: User | None = None
+
+    if data.eri_key_serial:
+        user = await user_repo.get_by_eri_key(data.eri_key_serial)
+        if not user:
+            raise HTTPException(status_code=401, detail="ERI kalit topilmadi")
+    elif data.usb_token_id:
+        user = await user_repo.get_by_usb_token(data.usb_token_id)
+        if not user:
+            raise HTTPException(status_code=401, detail="USB token topilmadi")
+    elif data.inn and data.password:
+        user = await user_repo.get_by_inn(data.inn)
+        if not user:
+            raise HTTPException(status_code=401, detail="INN yoki parol noto'g'ri")
+        from app.utils.security import verify_password
+        if not verify_password(data.password, user.hashed_password):
+            raise HTTPException(status_code=401, detail="INN yoki parol noto'g'ri")
+    else:
+        raise HTTPException(status_code=400, detail="INN+parol, ERI kalit yoki USB token kiriting")
+
+    if not user.is_active:
+        raise HTTPException(status_code=401, detail="Hisob faol emas")
+
+    logger.info("UZEX user logged in: %s (INN: %s)", user.email, user.inn)
+    service = AuthService(db)
+    return SuccessResponse(data=service._create_tokens(user.id, user.token_version))

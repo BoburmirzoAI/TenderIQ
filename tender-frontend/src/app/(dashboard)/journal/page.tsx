@@ -1,16 +1,7 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -31,7 +22,7 @@ import {
   Ban,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
+
 } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -145,8 +136,9 @@ export default function JournalPage() {
       toast.success("Natija yangilandi");
       loadEntries();
       loadStats();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || "Xatolik");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      toast.error(e?.response?.data?.detail || "Xatolik");
     } finally {
       setUpdatingId(null);
     }
@@ -155,8 +147,8 @@ export default function JournalPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Win/Loss kundalik</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Win/Loss kundalik</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Tender arizalaringiz natijalari va tahlili
         </p>
       </div>
@@ -168,36 +160,36 @@ export default function JournalPage() {
         </div>
       ) : stats ? (
         <div className="grid gap-4 md:grid-cols-5">
-          <Card>
-            <CardContent className="pt-4 text-center">
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="pt-4 text-center">
               <p className="text-sm text-muted-foreground">Jami</p>
               <p className="text-2xl font-bold">{stats.total}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 text-center">
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="pt-4 text-center">
               <p className="text-sm text-muted-foreground">Yutilgan</p>
               <p className="text-2xl font-bold text-green-600">{stats.won}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 text-center">
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="pt-4 text-center">
               <p className="text-sm text-muted-foreground">Yutqazilgan</p>
               <p className="text-2xl font-bold text-red-600">{stats.lost}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 text-center">
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="pt-4 text-center">
               <p className="text-sm text-muted-foreground">Win rate</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.win_rate}%</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 text-center">
+              <p className="text-2xl font-bold text-sky-500">{stats.win_rate}%</p>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="pt-4 text-center">
               <p className="text-sm text-muted-foreground">Yutilgan summa</p>
               <p className="text-2xl font-bold">{formatAmount(stats.total_won_amount)}</p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -228,22 +220,22 @@ export default function JournalPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : entries.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="py-12 text-center text-muted-foreground">
                 <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>Hali kundalikda yozuv yo&apos;q</p>
                 <p className="text-sm mt-1">Pipeline orqali arizalar qo&apos;shing</p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ) : (
             <>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {entries.map((entry) => {
                   const config = entry.result ? RESULT_CONFIG[entry.result] : null;
                   const ResultIcon = config?.icon || Clock;
                   return (
-                    <Card key={entry.id}>
-                      <CardContent className="py-3">
+                    <div key={entry.id} className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                      <div className="py-3">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
@@ -251,19 +243,19 @@ export default function JournalPage() {
                                 {entry.tender_title}
                               </p>
                               {entry.result ? (
-                                <Badge className={config?.color}>
-                                  <ResultIcon className="h-3 w-3 mr-1" />
+                                <span className={"rounded-full px-2.5 py-0.5 text-[12px] font-semibold " + (config?.color || "")}>
+                                  <ResultIcon className="h-3 w-3 mr-1 inline" />
                                   {config?.label}
-                                </Badge>
+                                </span>
                               ) : (
-                                <Badge variant="outline" className="text-xs">
-                                  <Clock className="h-3 w-3 mr-1" />
+                                <span className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold">
+                                  <Clock className="h-3 w-3 mr-1 inline" />
                                   Kutilmoqda
-                                </Badge>
+                                </span>
                               )}
-                              <Badge variant="secondary" className="text-xs">
+                              <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold">
                                 {entry.stage}
-                              </Badge>
+                              </span>
                             </div>
                             <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
                               {entry.organization && (
@@ -301,59 +293,53 @@ export default function JournalPage() {
 
                             {!entry.result && (
                               <div className="flex gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-green-600 hover:bg-green-50 h-7 px-2 text-xs"
+                                <button
+                                  className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-2 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5 text-green-600 hover:bg-green-50 h-7 text-xs"
                                   disabled={updatingId === entry.id}
                                   onClick={() => updateResult(entry.id, "won")}
                                 >
                                   {updatingId === entry.id ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />
                                   ) : (
-                                    <><Trophy className="h-3 w-3 mr-1" />Won</>
+                                    <><Trophy className="h-3 w-3 mr-1 inline" />Won</>
                                   )}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-red-600 hover:bg-red-50 h-7 px-2 text-xs"
+                                </button>
+                                <button
+                                  className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-2 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5 text-red-600 hover:bg-red-50 h-7 text-xs"
                                   disabled={updatingId === entry.id}
                                   onClick={() => updateResult(entry.id, "lost")}
                                 >
-                                  <XCircle className="h-3 w-3 mr-1" />Lost
-                                </Button>
+                                  <XCircle className="h-3 w-3 mr-1 inline" />Lost
+                                </button>
                               </div>
                             )}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
 
               {/* Pagination */}
               <div className="flex items-center justify-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
+                  className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                </Button>
+                </button>
                 <span className="text-sm text-muted-foreground">
                   {page} / {totalPages}
                 </span>
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
+                  className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
                   <ChevronRight className="h-4 w-4" />
-                </Button>
+                </button>
               </div>
             </>
           )}
@@ -365,28 +351,28 @@ export default function JournalPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : !stats || stats.total === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="py-12 text-center text-muted-foreground">
                 <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>Tahlil uchun ma&apos;lumot yo&apos;q</p>
                 <p className="text-sm mt-1">
                   Pipeline orqali arizalar qo&apos;shing va natijalarni belgilang
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ) : (
             <>
               {/* Monthly Trend */}
               {stats.monthly.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                  <div>
+                    <h3 className="text-[16px] font-bold mb-1 text-sm flex items-center gap-2">
                       <TrendingUp className="h-4 w-4" />
                       Oylik trend
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
+                    </h3>
+                  </div>
+                  <div>
+                    <div className="space-y-3">
                       {stats.monthly.map((m) => {
                         const maxBar = Math.max(...stats.monthly.map((x) => x.total), 1);
                         return (
@@ -428,20 +414,20 @@ export default function JournalPage() {
                         <div className="w-3 h-3 rounded bg-gray-300" /> Boshqa
                       </span>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )}
 
               <div className="grid gap-6 md:grid-cols-2">
                 {/* By Category */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                  <div>
+                    <h3 className="text-[16px] font-bold mb-1 text-sm flex items-center gap-2">
                       <BarChart3 className="h-4 w-4" />
                       Kategoriya bo&apos;yicha
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                    </h3>
+                  </div>
+                  <div>
                     {stats.by_category.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">
                         Ma&apos;lumot yo&apos;q
@@ -473,18 +459,18 @@ export default function JournalPage() {
                         ))}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* By Region */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                  <div>
+                    <h3 className="text-[16px] font-bold mb-1 text-sm flex items-center gap-2">
                       <BarChart3 className="h-4 w-4" />
                       Hudud bo&apos;yicha
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                    </h3>
+                  </div>
+                  <div>
                     {stats.by_region.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">
                         Ma&apos;lumot yo&apos;q
@@ -516,8 +502,8 @@ export default function JournalPage() {
                         ))}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
             </>
           )}

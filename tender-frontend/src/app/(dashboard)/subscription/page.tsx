@@ -3,16 +3,6 @@
 import { useEffect, useState } from "react";
 import { Check, Crown, Zap, Building2 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -80,60 +70,56 @@ export default function SubscriptionPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Obuna boshqaruvi</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Obuna boshqaruvi</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Rejangizni tanlang va imkoniyatlaringizni kengaytiring
         </p>
       </div>
 
       {usage && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Joriy foydalanish</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-6 md:grid-cols-3">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Kunlik so&apos;rovlar
-                </p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold">
-                    {usage.daily_requests_used}
-                  </span>
-                  <span className="text-muted-foreground">
-                    / {usage.daily_requests_limit}
-                  </span>
-                </div>
-                <Progress value={usagePercent} className="mt-2" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Saqlangan tenderlar
-                </p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold">
-                    {usage.saved_tenders}
-                  </span>
-                  <span className="text-muted-foreground">
-                    /{" "}
-                    {usage.max_saved_tenders === -1
-                      ? "∞"
-                      : usage.max_saved_tenders}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Qolgan kunlar
-                </p>
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <h3 className="text-[16px] font-bold mb-1">Joriy foydalanish</h3>
+          <div className="grid gap-6 md:grid-cols-3">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">
+                Kunlik so&apos;rovlar
+              </p>
+              <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-bold">
-                  {usage.days_remaining ?? "∞"}
+                  {usage.daily_requests_used}
+                </span>
+                <span className="text-muted-foreground">
+                  / {usage.daily_requests_limit}
+                </span>
+              </div>
+              <Progress value={usagePercent} className="mt-2" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">
+                Saqlangan tenderlar
+              </p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold">
+                  {usage.saved_tenders}
+                </span>
+                <span className="text-muted-foreground">
+                  /{" "}
+                  {usage.max_saved_tenders === -1
+                    ? "∞"
+                    : usage.max_saved_tenders}
                 </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">
+                Qolgan kunlar
+              </p>
+              <span className="text-2xl font-bold">
+                {usage.days_remaining ?? "∞"}
+              </span>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -142,16 +128,16 @@ export default function SubscriptionPage() {
           return (
             <div key={plan.name} className="relative pt-4">
               {plan.name === "pro" && (
-                <Badge className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 z-10 rounded-full bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] px-2.5 py-0.5 text-[12px] font-semibold">
                   Mashhur
-                </Badge>
+                </span>
               )}
-              <Card
-                className={`h-full flex flex-col ${
+              <div
+                className={`rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg h-full flex flex-col ${
                   plan.name === "pro" ? "border-primary shadow-lg ring-2 ring-primary/20" : ""
                 }`}
               >
-                <CardHeader className="text-center pt-6">
+                <div className="text-center pt-6">
                   <div
                     className={`mx-auto flex h-14 w-14 items-center justify-center rounded-xl ${
                       planColors[plan.name] ?? "bg-muted"
@@ -159,10 +145,10 @@ export default function SubscriptionPage() {
                   >
                     {planIcons[plan.name]}
                   </div>
-                  <CardTitle className="capitalize text-xl">
+                  <h3 className="text-[16px] font-bold mb-1 capitalize text-xl">
                     {plan.name}
-                  </CardTitle>
-                  <CardDescription>
+                  </h3>
+                  <p className="text-[13px] text-muted-foreground mb-4">
                     <span className="text-3xl font-bold text-foreground">
                       {plan.price_uzs === 0
                         ? "Bepul"
@@ -171,9 +157,9 @@ export default function SubscriptionPage() {
                     {plan.price_uzs > 0 && (
                       <span className="text-muted-foreground"> /oy</span>
                     )}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1">
+                  </p>
+                </div>
+                <div className="flex-1">
                   <Separator className="mb-4" />
                   <ul className="space-y-3">
                     <Feature
@@ -205,11 +191,10 @@ export default function SubscriptionPage() {
                       included
                     />
                   </ul>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    className="w-full"
-                    variant={isCurrent ? "outline" : "default"}
+                </div>
+                <div className="pt-4">
+                  <button
+                    className={"w-full rounded-full px-6 py-2.5 text-[13px] font-semibold transition-all active:scale-[0.97] " + (isCurrent ? "border border-black/10 bg-white/70 backdrop-blur hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5" : "bg-[#1d1d1f] text-white hover:bg-[#333] hover:shadow-lg dark:bg-white dark:text-[#1d1d1f]")}
                     disabled={isCurrent}
                     onClick={() => {
                       toast.info(
@@ -218,9 +203,9 @@ export default function SubscriptionPage() {
                     }}
                   >
                     {isCurrent ? "Joriy reja" : "Tanlash"}
-                  </Button>
-                </CardFooter>
-              </Card>
+                  </button>
+                </div>
+              </div>
             </div>
           );
         })}

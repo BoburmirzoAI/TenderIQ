@@ -2,22 +2,12 @@
 
 import { useState } from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   FileDown,
   FileSpreadsheet,
@@ -109,93 +99,90 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Hisobotlar</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Hisobotlar</h1>
+        <p className="text-[14px] text-muted-foreground mt-1">
           PDF yoki Excel formatida hisobotlarni yuklab oling
         </p>
       </div>
 
       {/* Filters for tenders report */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
+      <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+        <div className="mb-4">
+          <h3 className="text-[15px] font-semibold flex items-center gap-2">
             <ListFilter className="h-4 w-4" />
             Tenderlar filtri
-          </CardTitle>
-          <CardDescription>
+          </h3>
+          <p className="text-[13px] text-muted-foreground mt-0.5">
             Tenderlar hisobotiga qo&apos;llaniladigan filtrlar
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Select
-              value={category}
-              onValueChange={(v) => setCategory(!v || v === "all" ? "" : v)}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Select
+            value={category}
+            onValueChange={(v) => setCategory(!v || v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Kategoriya" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Barchasi</SelectItem>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={region}
+            onValueChange={(v) => setRegion(!v || v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Viloyat" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Barchasi</SelectItem>
+              {REGIONS.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={status}
+            onValueChange={(v) => setStatus(!v || v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Barchasi</SelectItem>
+              <SelectItem value="active">Faol</SelectItem>
+              <SelectItem value="closed">Yopilgan</SelectItem>
+              <SelectItem value="cancelled">Bekor qilingan</SelectItem>
+              <SelectItem value="awarded">G&apos;olib aniqlangan</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {(category || region || status) && (
+            <button
+              className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+              onClick={() => {
+                setCategory("");
+                setRegion("");
+                setStatus("");
+              }}
             >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Kategoriya" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Barchasi</SelectItem>
-                {CATEGORIES.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              Tozalash
+            </button>
+          )}
+        </div>
+      </div>
 
-            <Select
-              value={region}
-              onValueChange={(v) => setRegion(!v || v === "all" ? "" : v)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Viloyat" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Barchasi</SelectItem>
-                {REGIONS.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={status}
-              onValueChange={(v) => setStatus(!v || v === "all" ? "" : v)}
-            >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Barchasi</SelectItem>
-                <SelectItem value="active">Faol</SelectItem>
-                <SelectItem value="closed">Yopilgan</SelectItem>
-                <SelectItem value="cancelled">Bekor qilingan</SelectItem>
-                <SelectItem value="awarded">G&apos;olib aniqlangan</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {(category || region || status) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setCategory("");
-                  setRegion("");
-                  setStatus("");
-                }}
-              >
-                Tozalash
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Separator />
+      <div className="h-px bg-gradient-to-r from-transparent via-black/10 to-transparent dark:via-white/10" />
 
       {/* Report cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -205,66 +192,70 @@ export default function ReportsPage() {
           const excelKey = `${report.type}-excel`;
 
           return (
-            <Card key={report.type} className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Icon className="h-5 w-5 text-primary" />
-                  {report.title}
-                </CardTitle>
-                <CardDescription>{report.description}</CardDescription>
+            <div
+              key={report.type}
+              className="flex flex-col rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.01]"
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400/10 to-purple-500/10 dark:from-sky-400/20 dark:to-purple-400/20">
+                    <Icon className="h-5 w-5 text-sky-500 dark:text-sky-400" />
+                  </div>
+                  <h3 className="text-[15px] font-semibold">{report.title}</h3>
+                </div>
+                <p className="text-[14px] text-muted-foreground mt-1 mb-4">
+                  {report.description}
+                </p>
                 {report.hasFilters && (category || region || status) && (
-                  <div className="flex flex-wrap gap-1 pt-1">
+                  <div className="flex flex-wrap gap-1.5 mb-4">
                     {category && (
-                      <Badge variant="secondary" className="text-[10px]">
+                      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold bg-sky-400/10 text-sky-500 dark:text-sky-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
                         {CATEGORIES.find((c) => c.value === category)?.label}
-                      </Badge>
+                      </span>
                     )}
                     {region && (
-                      <Badge variant="secondary" className="text-[10px]">
+                      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
                         {REGIONS.find((r) => r.value === region)?.label}
-                      </Badge>
+                      </span>
                     )}
                     {status && (
-                      <Badge variant="secondary" className="text-[10px]">
+                      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold bg-green-500/10 text-green-600 dark:text-green-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
                         {status}
-                      </Badge>
+                      </span>
                     )}
                   </div>
                 )}
-              </CardHeader>
-              <CardContent className="mt-auto">
-                <div className="flex gap-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="flex-1"
-                    disabled={loading !== null}
-                    onClick={() => download(report.type, "pdf")}
-                  >
-                    {loading === pdfKey ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <FileDown className="h-4 w-4" />
-                    )}
-                    PDF
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    disabled={loading !== null}
-                    onClick={() => download(report.type, "excel")}
-                  >
-                    {loading === excelKey ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <FileSpreadsheet className="h-4 w-4" />
-                    )}
-                    Excel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="flex gap-2 mt-auto">
+                <button
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading !== null}
+                  onClick={() => download(report.type, "pdf")}
+                >
+                  {loading === pdfKey ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileDown className="h-4 w-4" />
+                  )}
+                  PDF
+                </button>
+                <button
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading !== null}
+                  onClick={() => download(report.type, "excel")}
+                >
+                  {loading === excelKey ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="h-4 w-4" />
+                  )}
+                  Excel
+                </button>
+              </div>
+            </div>
           );
         })}
       </div>

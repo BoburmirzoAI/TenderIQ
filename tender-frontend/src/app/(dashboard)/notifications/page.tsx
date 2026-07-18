@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -13,16 +14,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import api from "@/lib/api";
 import { useNotificationStore } from "@/store/notifications";
@@ -42,7 +33,7 @@ const typeIcons: Record<string, React.ReactNode> = {
   match: <Trophy className="h-4 w-4 text-primary" />,
   deadline: <Clock className="h-4 w-4 text-amber-500" />,
   result: <CheckCheck className="h-4 w-4 text-green-500" />,
-  system: <Info className="h-4 w-4 text-blue-500" />,
+  system: <Info className="h-4 w-4 text-sky-400" />,
   alert: <AlertTriangle className="h-4 w-4 text-red-500" />,
 };
 
@@ -94,7 +85,7 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setUnreadCount]);
 
   useEffect(() => {
     loadNotifications(1);
@@ -145,103 +136,98 @@ export default function NotificationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-[32px] font-extrabold tracking-[-0.03em] flex items-center gap-2">
             <Bell className="h-6 w-6" />
             Bildirishnomalar
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-1">
             {total > 0 ? `${total} ta bildirishnoma, ${unread} ta o'qilmagan` : "Bildirishnomalar yo'q"}
           </p>
         </div>
         {unread > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
+          <button
+            className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
             onClick={handleMarkAllRead}
             disabled={markingAll}
           >
             {markingAll ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
             ) : (
-              <CheckCheck className="mr-2 h-4 w-4" />
+              <CheckCheck className="mr-2 h-4 w-4 inline" />
             )}
             Hammasini o&apos;qilgan deb belgilash
-          </Button>
+          </button>
         )}
       </div>
 
       {notifications.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="flex flex-col items-center justify-center py-12">
             <BellRing className="h-12 w-12 text-muted-foreground/30 mb-4" />
             <p className="text-muted-foreground">Hozircha bildirishnomalar yo&apos;q</p>
             <p className="text-xs text-muted-foreground mt-1">
               Yangi tenderlar va muhim yangiliklar haqida shu yerda xabar beriladi
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {notifications.map((notif) => (
-            <Card
+            <div
               key={notif.id}
-              className={`transition-colors ${
-                !notif.is_read ? "bg-primary/5 border-primary/20" : ""
+              className={`rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:bg-white/80 dark:hover:bg-[rgba(17,24,39,0.7)] ${
+                !notif.is_read ? "bg-sky-50/60 border-sky-200/50 dark:bg-sky-400/[0.06] dark:border-sky-400/[0.15]" : ""
               }`}
             >
-              <CardContent className="flex items-start gap-4 py-4">
-                <div className="mt-0.5 shrink-0">
+              <div className="flex items-start gap-4">
+                <div className="mt-0.5 shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-black/[0.03] dark:bg-white/[0.05]">
                   {typeIcons[notif.type] ?? <Bell className="h-4 w-4" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm">{notif.title}</span>
-                    <Badge variant="secondary" className="text-xs">
+                    <span className="font-semibold text-[15px]">{notif.title}</span>
+                    <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold">
                       {typeLabels[notif.type] ?? notif.type}
-                    </Badge>
+                    </span>
                     {!notif.is_read && (
-                      <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                      <div className="h-2 w-2 rounded-full bg-sky-400 shrink-0" />
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">{notif.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[14px] text-muted-foreground">{notif.message}</p>
+                  <p className="text-[12px] text-muted-foreground mt-1.5">
                     {timeAgo(notif.created_at)}
                   </p>
                 </div>
                 {!notif.is_read && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
+                    className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-3 py-2 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5 shrink-0"
                     onClick={() => handleMarkRead(notif.id)}
-                    className="shrink-0"
                   >
                     <Check className="h-4 w-4" />
-                  </Button>
+                  </button>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
 
       {(hasNext || page > 1) && (
         <div className="flex justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
+          <button
+            className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
             disabled={page <= 1}
             onClick={() => loadNotifications(page - 1)}
           >
             Oldingi
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+          </button>
+          <button
+            className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
             disabled={!hasNext}
             onClick={() => loadNotifications(page + 1)}
           >
             Keyingi
-          </Button>
+          </button>
         </div>
       )}
     </div>

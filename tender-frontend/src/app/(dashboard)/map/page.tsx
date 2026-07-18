@@ -1,16 +1,8 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -19,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  MapPin,
+
   Loader2,
   ArrowLeft,
   Building2,
@@ -172,11 +164,11 @@ export default function MapPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setSelectedRegion(null)}>
+          <button className="rounded-xl px-3 py-1.5 text-[13px] font-semibold transition-all hover:bg-black/5 dark:hover:bg-white/10 inline-flex items-center" onClick={() => setSelectedRegion(null)}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Xaritaga qaytish
-          </Button>
+          </button>
           <div>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">
               {REGION_NAMES[selectedRegion] || selectedRegion}
             </h1>
             {stat && (
@@ -189,30 +181,30 @@ export default function MapPage() {
 
         {stat && (
           <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardContent className="pt-4 text-center">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="pt-4 text-center">
                 <p className="text-sm text-muted-foreground">Jami</p>
                 <p className="text-2xl font-bold">{stat.total}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="pt-4 text-center">
                 <p className="text-sm text-muted-foreground">Faol</p>
                 <p className="text-2xl font-bold text-green-600">{stat.active}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="pt-4 text-center">
                 <p className="text-sm text-muted-foreground">O&apos;rtacha summa</p>
                 <p className="text-2xl font-bold">{formatAmount(stat.avg_amount)}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="pt-4 text-center">
                 <p className="text-sm text-muted-foreground">Umumiy summa</p>
                 <p className="text-2xl font-bold">{formatAmount(stat.total_amount)}</p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         )}
 
@@ -221,16 +213,14 @@ export default function MapPage() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : regionTenders.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              Bu hududda tender topilmadi
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg py-8 text-center text-muted-foreground">
+            Bu hududda tender topilmadi
+          </div>
         ) : (
           <div className="space-y-2">
             {regionTenders.map((t) => (
-              <Card key={t.id}>
-                <CardContent className="py-3">
+              <div key={t.id} className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                <div className="py-3">
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{t.title}</p>
@@ -253,16 +243,15 @@ export default function MapPage() {
                           {formatAmount(t.amount)} {t.currency}
                         </p>
                       )}
-                      <Badge
-                        variant={t.status === "active" ? "default" : "secondary"}
-                        className="text-xs mt-1"
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold mt-1 inline-block ${t.status === "active" ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f]" : "bg-black/[0.04] dark:bg-white/[0.06]"}`}
                       >
                         {t.status}
-                      </Badge>
+                      </span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -273,8 +262,8 @@ export default function MapPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Tender xaritasi</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Tender xaritasi</h1>
+        <p className="text-[14px] text-muted-foreground mt-1">
           O&apos;zbekiston hududlari bo&apos;yicha tenderlar
         </p>
       </div>
@@ -312,19 +301,19 @@ export default function MapPage() {
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
-            <CardContent className="pt-4 p-0 overflow-hidden rounded-lg">
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg overflow-hidden lg:col-span-2">
+            <div className="pt-4 p-0 overflow-hidden rounded-lg">
               <MapContent markers={mapMarkers} onRegionClick={openRegion} />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Hududlar reytingi</CardTitle>
-                <CardDescription>Tender soni bo&apos;yicha</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="pb-2">
+                <h3 className="text-[16px] font-bold mb-1">Hududlar reytingi</h3>
+                <p className="text-[13px] text-muted-foreground mb-4">Tender soni bo&apos;yicha</p>
+              </div>
+              <div className="space-y-2">
                 {regions.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
                     Ma&apos;lumot topilmadi
@@ -341,14 +330,14 @@ export default function MapPage() {
                         <span className="truncate">{REGION_NAMES[r.region] || r.region}</span>
                       </span>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">{r.total}</Badge>
-                        <Badge className="text-xs bg-green-100 text-green-700">{r.active}</Badge>
+                        <span className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold">{r.total}</span>
+                        <span className="rounded-full bg-green-100 text-green-700 px-2.5 py-0.5 text-[12px] font-semibold">{r.active}</span>
                       </div>
                     </div>
                   ))
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       )}

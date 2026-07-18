@@ -1,16 +1,8 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -57,7 +49,21 @@ const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-500",
   closed: "bg-gray-400",
   cancelled: "bg-red-400",
-  awarded: "bg-blue-500",
+  awarded: "bg-sky-400",
+};
+
+const STATUS_PILL_COLORS: Record<string, string> = {
+  active: "bg-green-500/10 text-green-600 dark:text-green-400",
+  closed: "bg-gray-500/10 text-gray-600 dark:text-gray-400",
+  cancelled: "bg-red-500/10 text-red-600 dark:text-red-400",
+  awarded: "bg-sky-400/10 text-sky-500 dark:text-sky-400",
+};
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+  active: "bg-green-500",
+  closed: "bg-gray-500",
+  cancelled: "bg-red-500",
+  awarded: "bg-sky-400",
 };
 
 function getDaysInMonth(year: number, month: number) {
@@ -130,258 +136,247 @@ export default function CalendarPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em] flex items-center gap-2">
           <CalendarDays className="h-6 w-6" />
           Tender Kalendar
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-[14px] text-muted-foreground mt-1">
           Tenderlarni muddat bo&apos;yicha kalendarda ko&apos;ring
         </p>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <ListFilter className="h-4 w-4" />
-            Filtrlar
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Select
-              value={category}
-              onValueChange={(v) => setCategory(!v || v === "all" ? "" : v)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Kategoriya" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Barchasi</SelectItem>
-                {CATEGORIES.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+        <h3 className="text-[15px] font-semibold flex items-center gap-2 mb-4">
+          <ListFilter className="h-4 w-4" />
+          Filtrlar
+        </h3>
+        <div className="flex flex-wrap gap-3">
+          <Select
+            value={category}
+            onValueChange={(v) => setCategory(!v || v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Kategoriya" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Barchasi</SelectItem>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            <Select
-              value={region}
-              onValueChange={(v) => setRegion(!v || v === "all" ? "" : v)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Viloyat" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Barchasi</SelectItem>
-                {REGIONS.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <Select
+            value={region}
+            onValueChange={(v) => setRegion(!v || v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Viloyat" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Barchasi</SelectItem>
+              {REGIONS.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            <Select
-              value={status}
-              onValueChange={(v) => setStatus(!v || v === "all" ? "" : v)}
-            >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Barchasi</SelectItem>
-                <SelectItem value="active">Faol</SelectItem>
-                <SelectItem value="closed">Yopilgan</SelectItem>
-                <SelectItem value="cancelled">Bekor qilingan</SelectItem>
-                <SelectItem value="awarded">G&apos;olib aniqlangan</SelectItem>
-              </SelectContent>
-            </Select>
+          <Select
+            value={status}
+            onValueChange={(v) => setStatus(!v || v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Barchasi</SelectItem>
+              <SelectItem value="active">Faol</SelectItem>
+              <SelectItem value="closed">Yopilgan</SelectItem>
+              <SelectItem value="cancelled">Bekor qilingan</SelectItem>
+              <SelectItem value="awarded">G&apos;olib aniqlangan</SelectItem>
+            </SelectContent>
+          </Select>
 
-            {(category || region || status) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setCategory("");
-                  setRegion("");
-                  setStatus("");
-                }}
-              >
-                Tozalash
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          {(category || region || status) && (
+            <button
+              className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+              onClick={() => {
+                setCategory("");
+                setRegion("");
+                setStatus("");
+              }}
+            >
+              Tozalash
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         {/* Calendar grid */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <Button variant="outline" size="icon" onClick={() => goMonth(-1)}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <CardTitle className="text-lg">
-                {MONTHS[month - 1]} {year}
-              </CardTitle>
-              <Button variant="outline" size="icon" onClick={() => goMonth(1)}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              className="rounded-xl border border-black/10 bg-white/70 backdrop-blur p-2.5 transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+              onClick={() => goMonth(-1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <h3 className="text-lg font-bold tracking-tight">
+              {MONTHS[month - 1]} {year}
+            </h3>
+            <button
+              className="rounded-xl border border-black/10 bg-white/70 backdrop-blur p-2.5 transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+              onClick={() => goMonth(1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
-                {/* Weekday headers */}
-                {WEEKDAYS.map((d) => (
-                  <div
-                    key={d}
-                    className="bg-muted px-2 py-2 text-center text-xs font-medium text-muted-foreground"
+          ) : (
+            <div className="grid grid-cols-7 gap-px rounded-xl overflow-hidden border border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5">
+              {/* Weekday headers */}
+              {WEEKDAYS.map((d) => (
+                <div
+                  key={d}
+                  className="bg-white/40 dark:bg-white/[0.02] px-2 py-2 text-center text-[12px] font-semibold text-muted-foreground uppercase tracking-wider"
+                >
+                  {d}
+                </div>
+              ))}
+
+              {/* Day cells */}
+              {Array.from({ length: rows * 7 }, (_, i) => {
+                const dayNum = i - firstDay + 1;
+                const isValid = dayNum >= 1 && dayNum <= daysInMonth;
+                const dateStr = isValid
+                  ? `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`
+                  : "";
+                const dayTenders = isValid ? tendersByDate[dateStr] : undefined;
+                const count = dayTenders?.length ?? 0;
+                const isToday = dateStr === todayStr;
+                const isSelected = dateStr === selectedDate;
+
+                return (
+                  <button
+                    key={i}
+                    disabled={!isValid}
+                    onClick={() => isValid && setSelectedDate(dateStr === selectedDate ? null : dateStr)}
+                    className={`relative bg-white/80 dark:bg-[rgba(17,24,39,0.3)] p-1.5 min-h-[72px] text-left transition-all
+                      ${!isValid ? "bg-white/30 dark:bg-[rgba(17,24,39,0.15)]" : "hover:bg-white dark:hover:bg-[rgba(17,24,39,0.6)] cursor-pointer"}
+                      ${isSelected ? "ring-2 ring-sky-400 ring-inset bg-sky-50/50 dark:bg-sky-400/10" : ""}
+                    `}
                   >
-                    {d}
-                  </div>
-                ))}
-
-                {/* Day cells */}
-                {Array.from({ length: rows * 7 }, (_, i) => {
-                  const dayNum = i - firstDay + 1;
-                  const isValid = dayNum >= 1 && dayNum <= daysInMonth;
-                  const dateStr = isValid
-                    ? `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`
-                    : "";
-                  const dayTenders = isValid ? tendersByDate[dateStr] : undefined;
-                  const count = dayTenders?.length ?? 0;
-                  const isToday = dateStr === todayStr;
-                  const isSelected = dateStr === selectedDate;
-
-                  return (
-                    <button
-                      key={i}
-                      disabled={!isValid}
-                      onClick={() => isValid && setSelectedDate(dateStr === selectedDate ? null : dateStr)}
-                      className={`relative bg-background p-1.5 min-h-[72px] text-left transition-colors
-                        ${!isValid ? "bg-muted/30" : "hover:bg-muted/50 cursor-pointer"}
-                        ${isSelected ? "ring-2 ring-primary ring-inset" : ""}
-                      `}
-                    >
-                      {isValid && (
-                        <>
-                          <span
-                            className={`text-xs font-medium inline-flex items-center justify-center w-6 h-6 rounded-full
-                              ${isToday ? "bg-primary text-primary-foreground" : "text-foreground"}
-                            `}
-                          >
-                            {dayNum}
-                          </span>
-                          {count > 0 && (
-                            <div className="mt-0.5 space-y-0.5">
-                              {dayTenders!.slice(0, 3).map((t) => (
-                                <div
-                                  key={t.id}
-                                  className="flex items-center gap-1"
-                                >
-                                  <span
-                                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_COLORS[t.status] ?? "bg-gray-400"}`}
-                                  />
-                                  <span className="text-[10px] leading-tight truncate text-muted-foreground">
-                                    {t.title.slice(0, 20)}
-                                  </span>
-                                </div>
-                              ))}
-                              {count > 3 && (
-                                <span className="text-[10px] text-muted-foreground font-medium">
-                                  +{count - 3} ta
+                    {isValid && (
+                      <>
+                        <span
+                          className={`text-[12px] font-semibold inline-flex items-center justify-center w-6 h-6 rounded-full
+                            ${isToday ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f]" : "text-foreground"}
+                          `}
+                        >
+                          {dayNum}
+                        </span>
+                        {count > 0 && (
+                          <div className="mt-0.5 space-y-0.5">
+                            {dayTenders!.slice(0, 3).map((t) => (
+                              <div
+                                key={t.id}
+                                className="flex items-center gap-1"
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_COLORS[t.status] ?? "bg-gray-400"}`}
+                                />
+                                <span className="text-[10px] leading-tight truncate text-muted-foreground">
+                                  {t.title.slice(0, 20)}
                                 </span>
-                              )}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                              </div>
+                            ))}
+                            {count > 3 && (
+                              <span className="text-[10px] text-muted-foreground font-medium">
+                                +{count - 3} ta
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Selected day detail */}
         <div className="space-y-3">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">
-                {selectedDate
-                  ? new Date(selectedDate + "T00:00:00").toLocaleDateString("uz-UZ", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })
-                  : "Kunni tanlang"}
-              </CardTitle>
-              <CardDescription>
-                {selectedDate
-                  ? `${selectedTenders.length} ta tender`
-                  : "Kalendardagi kunni bosing"}
-              </CardDescription>
-            </CardHeader>
-          </Card>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all">
+            <h3 className="text-[15px] font-semibold">
+              {selectedDate
+                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("uz-UZ", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
+                : "Kunni tanlang"}
+            </h3>
+            <p className="text-[13px] text-muted-foreground mt-0.5">
+              {selectedDate
+                ? `${selectedTenders.length} ta tender`
+                : "Kalendardagi kunni bosing"}
+            </p>
+          </div>
 
           {selectedTenders.length > 0 && (
             <div className="space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto pr-1">
               {selectedTenders.map((t) => (
                 <Link key={t.id} href={`/tenders/${t.id}`}>
-                  <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium leading-snug line-clamp-2">
-                          {t.title}
-                        </p>
-                        <Badge
-                          variant={t.status === "active" ? "default" : "secondary"}
-                          className="shrink-0 text-[10px]"
-                        >
-                          {t.status}
-                        </Badge>
+                  <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-4 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.01] cursor-pointer space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[13px] font-semibold leading-snug line-clamp-2">
+                        {t.title}
+                      </p>
+                      <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${STATUS_PILL_COLORS[t.status] || STATUS_PILL_COLORS.closed}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT_COLORS[t.status] || STATUS_DOT_COLORS.closed}`} />
+                        {t.status}
+                      </span>
+                    </div>
+                    {t.organization && (
+                      <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                        <Building2 className="h-3 w-3" />
+                        <span className="truncate">{t.organization}</span>
                       </div>
-                      {t.organization && (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Building2 className="h-3 w-3" />
-                          <span className="truncate">{t.organization}</span>
-                        </div>
+                    )}
+                    <div className="flex items-center justify-between text-[12px]">
+                      {t.region && (
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          {t.region}
+                        </span>
                       )}
-                      <div className="flex items-center justify-between text-xs">
-                        {t.region && (
-                          <span className="flex items-center gap-1 text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            {t.region}
-                          </span>
-                        )}
-                        {t.amount ? (
-                          <span className="font-semibold text-green-600">
-                            {t.amount.toLocaleString("uz-UZ")} UZS
-                          </span>
-                        ) : null}
-                      </div>
-                    </CardContent>
-                  </Card>
+                      {t.amount ? (
+                        <span className="font-semibold text-green-600 dark:text-green-400">
+                          {t.amount.toLocaleString("uz-UZ")} UZS
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
                 </Link>
               ))}
             </div>
           )}
 
           {selectedDate && selectedTenders.length === 0 && (
-            <Card>
-              <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                Bu kunda tender topilmadi
-              </CardContent>
-            </Card>
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 text-center text-[13px] text-muted-foreground dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08]">
+              Bu kunda tender topilmadi
+            </div>
           )}
         </div>
       </div>

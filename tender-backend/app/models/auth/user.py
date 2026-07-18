@@ -33,6 +33,19 @@ class User(BaseModel, SoftDeleteMixin):
     notify_telegram = Column(Boolean, default=True, nullable=False)
     theme = Column(String(10), default="system", nullable=False)
 
+    # UZEX integration fields
+    auth_type = Column(String(10), default="basic", nullable=False, server_default="basic")
+    inn = Column(String(20), unique=True, nullable=True, index=True)
+    mfo = Column(String(10), nullable=True)
+    organization_name = Column(String(500), nullable=True)
+    account_number = Column(String(30), nullable=True)
+    region = Column(String(100), nullable=True)
+    district = Column(String(100), nullable=True)
+    address = Column(String(500), nullable=True)
+    director_name = Column(String(255), nullable=True)
+    eri_key_serial = Column(String(100), unique=True, nullable=True)
+    usb_token_id = Column(String(100), unique=True, nullable=True)
+
     company = relationship("Company", back_populates="user", uselist=False, lazy="selectin")
     subscriptions = relationship("Subscription", back_populates="user", lazy="selectin")
     payments = relationship("Payment", back_populates="user", lazy="noload")

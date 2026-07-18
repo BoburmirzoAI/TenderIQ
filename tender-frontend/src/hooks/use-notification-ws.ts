@@ -12,6 +12,8 @@ export function useNotificationWS() {
 
   // Boshlang'ich unread sonni yuklash
   const loadUnread = useCallback(async () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+    if (!token) return;
     try {
       const { data } = await api.get("/v1/notifications/stats");
       setUnreadCount(data.data.unread ?? 0);

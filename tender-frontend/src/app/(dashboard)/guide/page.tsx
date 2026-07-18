@@ -2,13 +2,10 @@
 
 import { useState } from "react";
 import {
-  BookOpen, Search, Building2, FileText, Bell, Star, Brain,
-  ClipboardList, FileSignature, BarChart3, Users, Settings,
-  ChevronRight, ChevronDown, CheckCircle2,
+  BookOpen, Search, FileText, Bell, Star, Brain,
+  ClipboardList, Users, Settings,
+  ChevronRight, ChevronDown,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 
 interface GuideSection {
   id: string;
@@ -130,17 +127,17 @@ export default function GuidePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Foydalanuvchi qo'llanmasi</h1>
-        <p className="text-muted-foreground">TenderIQ platformasidan samarali foydalanish bo'yicha to'liq yo'riqnoma</p>
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Foydalanuvchi qo&apos;llanmasi</h1>
+        <p className="text-sm text-muted-foreground mt-1">TenderIQ platformasidan samarali foydalanish bo&apos;yicha to&apos;liq yo&apos;riqnoma</p>
       </div>
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
+        <input
+          className="w-full h-11 rounded-xl border border-black/10 bg-white/80 pl-10 pr-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
           placeholder="Qo'llanma bo'yicha qidirish..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
         />
       </div>
 
@@ -152,31 +149,31 @@ export default function GuidePage() {
               onClick={() => setOpenSection(s.id)}
               className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors text-left ${
                 openSection === s.id
-                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                  ? "bg-sky-50 text-sky-600 border border-sky-200"
                   : "hover:bg-muted text-muted-foreground"
               }`}
             >
               {s.icon}
               <span className="flex-1">{s.title}</span>
-              {s.badge && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{s.badge}</Badge>}
+              {s.badge && <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold text-[10px] px-1.5 py-0">{s.badge}</span>}
             </button>
           ))}
         </div>
 
         <div className="lg:col-span-3 space-y-4">
           {filtered.map((section) => (
-            <Card key={section.id} className={openSection === section.id ? "" : "hidden lg:block"}>
-              <CardHeader
+            <div key={section.id} className={"rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg " + (openSection === section.id ? "" : "hidden lg:block")}>
+              <div
                 className="cursor-pointer"
                 onClick={() => setOpenSection(openSection === section.id ? "" : section.id)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 text-sky-500">
                       {section.icon}
                     </div>
-                    <CardTitle className="text-base">{section.title}</CardTitle>
-                    {section.badge && <Badge variant="secondary">{section.badge}</Badge>}
+                    <h3 className="text-[16px] font-bold mb-1 text-base">{section.title}</h3>
+                    {section.badge && <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold">{section.badge}</span>}
                   </div>
                   {openSection === section.id ? (
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -184,13 +181,13 @@ export default function GuidePage() {
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   )}
                 </div>
-              </CardHeader>
+              </div>
               {openSection === section.id && (
-                <CardContent>
+                <div className="mt-4">
                   <div className="space-y-4">
                     {section.steps.map((step, i) => (
                       <div key={i} className="flex gap-3">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-600 text-xs font-bold">
                           {i + 1}
                         </div>
                         <div>
@@ -200,9 +197,9 @@ export default function GuidePage() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
+                </div>
               )}
-            </Card>
+            </div>
           ))}
         </div>
       </div>

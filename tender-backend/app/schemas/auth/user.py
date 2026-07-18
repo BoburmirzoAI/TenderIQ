@@ -42,6 +42,14 @@ class UserRead(BaseModel):
     theme: str = "system"
     created_at: datetime
 
+    # UZEX fields
+    auth_type: str = "basic"
+    inn: Optional[str] = None
+    organization_name: Optional[str] = None
+    region: Optional[str] = None
+    district: Optional[str] = None
+    director_name: Optional[str] = None
+
 
 class UserUpdate(BaseModel):
     """Fields allowed for user self-update."""
