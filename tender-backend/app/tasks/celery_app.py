@@ -23,15 +23,14 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
-    # Scraperlar o'chirilgan — faqat qo'lda yoqiladi
-    # "scrape-uzex-every-20min": {
-    #     "task": "app.tasks.scraping_tasks.scrape_uzex",
-    #     "schedule": crontab(minute="*/20"),
-    # },
-    # "scrape-mc-hourly": {
-    #     "task": "app.tasks.scraping_tasks.scrape_mc",
-    #     "schedule": crontab(minute=5),
-    # },
+    "scrape-uzex-every-20min": {
+        "task": "app.tasks.scraping_tasks.scrape_uzex",
+        "schedule": crontab(minute="*/20"),
+    },
+    "scrape-mc-hourly": {
+        "task": "app.tasks.scraping_tasks.scrape_mc",
+        "schedule": crontab(minute=5),
+    },
     "retrain-price-model-daily": {
         "task": "app.tasks.ml_tasks.retrain_price_model",
         "schedule": crontab(hour=3, minute=0),

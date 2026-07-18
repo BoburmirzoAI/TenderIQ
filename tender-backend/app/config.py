@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:8000"]
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
@@ -44,7 +44,7 @@ class Settings(BaseSettings):
         return v
 
     TELEGRAM_BOT_TOKEN: str = ""
-    TELEGRAM_BOT_USERNAME: str = "TenderIQBot"
+    TELEGRAM_BOT_USERNAME: str = "TendersIQbot"
     TELEGRAM_WEBHOOK_URL: str = ""
 
     ANTHROPIC_API_KEY: str = ""

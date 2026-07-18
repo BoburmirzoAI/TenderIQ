@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { GraduationCap, BookOpen, Search, Eye, ArrowLeft } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { GraduationCap, Search, Eye, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import DOMPurify from "dompurify";
 import api from "@/lib/api";
@@ -32,7 +29,7 @@ export default function KnowledgeBasePage() {
   }, []);
 
   const loadArticles = async (catSlug?: string, q?: string) => {
-    const params: any = {};
+    const params: Record<string, string> = {};
     if (catSlug) params.category = catSlug;
     if (q) params.q = q;
     const r = await api.get("/v1/knowledge-base/articles", { params });
@@ -47,25 +44,23 @@ export default function KnowledgeBasePage() {
   if (article) {
     return (
       <div className="space-y-6">
-        <button onClick={() => setArticle(null)} className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+        <button onClick={() => setArticle(null)} className="text-sm text-sky-500 hover:underline flex items-center gap-1">
           <ArrowLeft className="h-3.5 w-3.5" /> Orqaga
         </button>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2 mb-2">
-              {article.category_name && <Badge variant="secondary">{article.category_name}</Badge>}
-              <span className="text-xs text-muted-foreground flex items-center gap-1"><Eye className="h-3 w-3" /> {article.view_count}</span>
-            </div>
-            <CardTitle className="text-2xl">{article.title}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {article.author_name && `${article.author_name} | `}
-              {new Date(article.updated_at).toLocaleDateString("uz")}
-            </p>
-          </CardHeader>
-          <CardContent>
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            {article.category_name && <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold">{article.category_name}</span>}
+            <span className="text-xs text-muted-foreground flex items-center gap-1"><Eye className="h-3 w-3" /> {article.view_count}</span>
+          </div>
+          <h3 className="text-[16px] font-bold mb-1 text-2xl">{article.title}</h3>
+          <p className="text-sm text-muted-foreground">
+            {article.author_name && `${article.author_name} | `}
+            {new Date(article.updated_at).toLocaleDateString("uz")}
+          </p>
+          <div className="mt-6">
             <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content) }} />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -73,17 +68,17 @@ export default function KnowledgeBasePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Bilimlar bazasi</h1>
-        <p className="text-muted-foreground">Qo'llanmalar, maqolalar va darsliklar</p>
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Bilimlar bazasi</h1>
+        <p className="text-sm text-muted-foreground mt-1">Qo&apos;llanmalar, maqolalar va darsliklar</p>
       </div>
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
+        <input
+          className="w-full h-11 rounded-xl border border-black/10 bg-white/80 pl-10 pr-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
           placeholder="Maqola qidirish..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); loadArticles(selectedCat || undefined, e.target.value); }}
-          className="pl-10"
         />
       </div>
 
@@ -93,49 +88,47 @@ export default function KnowledgeBasePage() {
         <>
           {categories.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              <Badge
-                variant={selectedCat === null ? "default" : "outline"}
-                className="cursor-pointer"
+              <span
+                className={"rounded-full px-2.5 py-0.5 text-[12px] font-semibold cursor-pointer " + (selectedCat === null ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f]" : "border border-black/10 dark:border-white/10")}
                 onClick={() => { setSelectedCat(null); loadArticles(undefined, search); }}
               >
                 Barchasi
-              </Badge>
+              </span>
               {categories.map((c) => (
-                <Badge
+                <span
                   key={c.id}
-                  variant={selectedCat === c.slug ? "default" : "outline"}
-                  className="cursor-pointer"
+                  className={"rounded-full px-2.5 py-0.5 text-[12px] font-semibold cursor-pointer " + (selectedCat === c.slug ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f]" : "border border-black/10 dark:border-white/10")}
                   onClick={() => { setSelectedCat(c.slug); loadArticles(c.slug, search); }}
                 >
                   {c.name} ({c.article_count})
-                </Badge>
+                </span>
               ))}
             </div>
           )}
 
           {articles.length === 0 ? (
-            <Card className="py-16 text-center">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl py-16 text-center dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all">
               <GraduationCap className="mx-auto h-12 w-12 text-muted-foreground/40" />
               <p className="mt-4 text-muted-foreground">Maqolalar topilmadi</p>
-            </Card>
+            </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {articles.map((a) => (
-                <Card
+                <div
                   key={a.id}
-                  className="cursor-pointer transition-all hover:shadow-md hover:border-blue-200"
+                  className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all cursor-pointer hover:shadow-md hover:border-sky-200"
                   onClick={() => openArticle(a.slug)}
                 >
-                  <CardContent className="p-5">
-                    {a.category_name && <Badge variant="secondary" className="text-xs mb-2">{a.category_name}</Badge>}
+                  <div>
+                    {a.category_name && <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold text-xs mb-2 inline-block">{a.category_name}</span>}
                     <h3 className="font-semibold leading-snug">{a.title}</h3>
                     {a.summary && <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{a.summary}</p>}
                     <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                       <span>{new Date(a.created_at).toLocaleDateString("uz")}</span>
                       <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {a.view_count}</span>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
           )}

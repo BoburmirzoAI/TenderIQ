@@ -1,15 +1,7 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -17,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import {
   Users,
@@ -113,11 +104,11 @@ export default function CompetitorsPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setProfile(null)}>
+          <button className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-2 py-2 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5" onClick={() => setProfile(null)}>
             <ArrowLeft className="h-5 w-5" />
-          </Button>
+          </button>
           <div>
-            <h1 className="text-xl font-bold">{profile.name}</h1>
+            <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">{profile.name}</h1>
             <p className="text-sm text-muted-foreground">STIR: {profile.stir}</p>
           </div>
         </div>
@@ -130,8 +121,8 @@ export default function CompetitorsPage() {
             { label: "O'rtacha", value: `${fmt(profile.avg_amount)} UZS`, icon: TrendingDown },
             { label: "O'rtacha chegirma", value: profile.avg_discount_pct != null ? `${profile.avg_discount_pct}%` : "—", icon: TrendingDown },
           ].map((s) => (
-            <Card key={s.label}>
-              <CardContent className="p-4">
+            <div key={s.label} className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="p-4">
                 <div className="flex items-center gap-3">
                   <s.icon className="h-5 w-5 text-muted-foreground" />
                   <div>
@@ -139,21 +130,21 @@ export default function CompetitorsPage() {
                     <p className="text-lg font-bold">{s.value}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* By category */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="pb-3">
+              <h3 className="text-[16px] font-bold mb-1 text-base flex items-center gap-2">
                 <Tag className="h-4 w-4" />
                 Kategoriya bo&apos;yicha
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+              </h3>
+            </div>
+            <div className="space-y-3">
               {profile.by_category.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Ma&apos;lumot yo&apos;q</p>
               ) : (
@@ -161,44 +152,44 @@ export default function CompetitorsPage() {
                   <div key={c.category} className="flex items-center justify-between">
                     <span className="text-sm">{c.category}</span>
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{c.count} ta</Badge>
+                      <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold">{c.count} ta</span>
                       <span className="text-xs text-muted-foreground">{fmt(c.amount)} UZS</span>
                     </div>
                   </div>
                 ))
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* By region */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="pb-3">
+              <h3 className="text-[16px] font-bold mb-1 text-base flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 Viloyat bo&apos;yicha
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+              </h3>
+            </div>
+            <div className="space-y-3">
               {profile.by_region.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Ma&apos;lumot yo&apos;q</p>
               ) : (
                 profile.by_region.map((r) => (
                   <div key={r.region} className="flex items-center justify-between">
                     <span className="text-sm">{r.region}</span>
-                    <Badge variant="secondary">{r.count} ta</Badge>
+                    <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold">{r.count} ta</span>
                   </div>
                 ))
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Recent wins */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">So&apos;nggi g&apos;alabalar</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="pb-3">
+            <h3 className="text-[16px] font-bold mb-1 text-base">So&apos;nggi g&apos;alabalar</h3>
+          </div>
+          <div className="space-y-3">
             {profile.recent_wins.map((w) => (
               <div
                 key={w.tender_id}
@@ -228,8 +219,8 @@ export default function CompetitorsPage() {
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -237,124 +228,120 @@ export default function CompetitorsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em] flex items-center gap-2">
           <Users className="h-6 w-6" />
           Raqobatchi tahlili
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground mt-1">
           Tender g&apos;oliblarini tahlil qiling — kim qayerda yutadi
         </p>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
+      <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+        <div className="pb-3">
+          <h3 className="text-[16px] font-bold mb-1 text-base flex items-center gap-2">
             <ListFilter className="h-4 w-4" />
             Filtrlar
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Select
-              value={category}
-              onValueChange={(v) => setCategory(!v || v === "all" ? "" : v)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Kategoriya" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Barchasi</SelectItem>
-                {CATEGORIES.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          </h3>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Select
+            value={category}
+            onValueChange={(v) => setCategory(!v || v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Kategoriya" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Barchasi</SelectItem>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            <Select
-              value={region}
-              onValueChange={(v) => setRegion(!v || v === "all" ? "" : v)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Viloyat" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Barchasi</SelectItem>
-                {REGIONS.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <Select
+            value={region}
+            onValueChange={(v) => setRegion(!v || v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Viloyat" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Barchasi</SelectItem>
+              {REGIONS.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            {(category || region) && (
-              <Button variant="ghost" size="sm" onClick={() => { setCategory(""); setRegion(""); }}>
-                Tozalash
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          {(category || region) && (
+            <button className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5" onClick={() => { setCategory(""); setRegion(""); }}>
+              Tozalash
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Top competitors table */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
+      <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+        <div className="pb-3">
+          <h3 className="text-[16px] font-bold mb-1 text-base flex items-center gap-2">
             <Trophy className="h-4 w-4" />
             Top raqobatchilar
-          </CardTitle>
-          <CardDescription>G&apos;alabalar soni bo&apos;yicha</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : competitors.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Ma&apos;lumot topilmadi
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {competitors.map((c, i) => {
-                const maxWins = competitors[0]?.wins || 1;
-                return (
-                  <button
-                    key={c.stir ?? c.name}
-                    onClick={() => c.stir && openProfile(c.stir)}
-                    disabled={!c.stir || profileLoading}
-                    className="w-full text-left rounded-lg border p-3 hover:bg-muted/50 transition-colors disabled:opacity-60"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-muted-foreground w-8 text-center">
-                        {i + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium truncate">{c.name}</p>
-                          <Badge variant="default">{c.wins} g&apos;alaba</Badge>
-                        </div>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-xs text-muted-foreground">
-                            {c.stir ? `STIR: ${c.stir}` : "STIR noma'lum"}
-                          </span>
-                          <span className="text-xs font-medium">
-                            O&apos;rtacha: {fmt(c.avg_amount)} UZS
-                          </span>
-                        </div>
-                        <Progress value={(c.wins / maxWins) * 100} className="mt-2 h-1.5" />
+          </h3>
+          <p className="text-[13px] text-muted-foreground mb-4">G&apos;alabalar soni bo&apos;yicha</p>
+        </div>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : competitors.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            Ma&apos;lumot topilmadi
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {competitors.map((c, i) => {
+              const maxWins = competitors[0]?.wins || 1;
+              return (
+                <button
+                  key={c.stir ?? c.name}
+                  onClick={() => c.stir && openProfile(c.stir)}
+                  disabled={!c.stir || profileLoading}
+                  className="w-full text-left rounded-lg border p-3 hover:bg-muted/50 transition-colors disabled:opacity-60"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold text-muted-foreground w-8 text-center">
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium truncate">{c.name}</p>
+                        <span className="rounded-full bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] px-2.5 py-0.5 text-[12px] font-semibold">{c.wins} g&apos;alaba</span>
                       </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {c.stir ? `STIR: ${c.stir}` : "STIR noma'lum"}
+                        </span>
+                        <span className="text-xs font-medium">
+                          O&apos;rtacha: {fmt(c.avg_amount)} UZS
+                        </span>
+                      </div>
+                      <Progress value={(c.wins / maxWins) * 100} className="mt-2 h-1.5" />
                     </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

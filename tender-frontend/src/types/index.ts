@@ -17,6 +17,36 @@ export interface User {
   notify_telegram: boolean;
   theme: string;
   created_at: string;
+  auth_type: "basic" | "uzex";
+  inn: string | null;
+  organization_name: string | null;
+  region: string | null;
+  district: string | null;
+  director_name: string | null;
+}
+
+export interface UzexRegisterData {
+  email: string;
+  password: string;
+  phone: string;
+  inn: string;
+  mfo: string;
+  organization_name: string;
+  account_number: string;
+  region: string;
+  district: string;
+  address: string;
+  director_name: string;
+  eri_key_serial?: string;
+  usb_token_id?: string;
+  accept_terms: boolean;
+}
+
+export interface UzexLoginData {
+  inn?: string;
+  password?: string;
+  eri_key_serial?: string;
+  usb_token_id?: string;
 }
 
 export interface TokenResponse {

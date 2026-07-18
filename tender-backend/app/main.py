@@ -33,11 +33,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(GZipMiddleware, minimum_size=1000)
-app.add_middleware(RateLimitMiddleware)
-app.add_middleware(PermissionMiddleware)
-app.add_middleware(AuthMiddleware)
 app.add_middleware(LoggingMiddleware)
+app.add_middleware(AuthMiddleware)
+app.add_middleware(PermissionMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,

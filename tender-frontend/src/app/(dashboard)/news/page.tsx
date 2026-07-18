@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Newspaper, Eye, Pin } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Newspaper, Eye, Pin, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import DOMPurify from "dompurify";
 import api from "@/lib/api";
@@ -22,7 +20,7 @@ interface NewsItem {
 export default function NewsPage() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<any>(null);
+  const [selected, setSelected] = useState<(NewsItem & { content?: string; author_name?: string }) | null>(null);
 
   useEffect(() => {
     api.get("/v1/news").then((r) => setNews(r.data.data)).finally(() => setLoading(false));
@@ -36,21 +34,17 @@ export default function NewsPage() {
   if (selected) {
     return (
       <div className="space-y-6">
-        <button onClick={() => setSelected(null)} className="text-sm text-blue-600 hover:underline">
-          &larr; Orqaga
+        <button onClick={() => setSelected(null)} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-sky-500 dark:text-sky-400 hover:text-sky-600 transition-colors">
+          <ArrowLeft className="h-3.5 w-3.5" /> Orqaga
         </button>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">{selected.title}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {selected.author_name && `${selected.author_name} | `}
-              {new Date(selected.created_at).toLocaleDateString("uz")}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selected.content) }} />
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-8 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08]">
+          <h1 className="text-[24px] font-extrabold tracking-[-0.03em] mb-2">{selected.title}</h1>
+          <p className="text-[13px] text-muted-foreground mb-6">
+            {selected.author_name && `${selected.author_name} · `}
+            {new Date(selected.created_at).toLocaleDateString("uz")}
+          </p>
+          <div className="prose max-w-none text-[14px] leading-relaxed" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selected.content ?? "") }} />
+        </div>
       </div>
     );
   }
@@ -58,42 +52,46 @@ export default function NewsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Yangiliklar va e'lonlar</h1>
-        <p className="text-muted-foreground">Platformadagi so'nggi yangiliklar</p>
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Yangiliklar va e&apos;lonlar</h1>
+        <p className="text-[14px] text-muted-foreground mt-1">Platformadagi so&apos;nggi yangiliklar</p>
       </div>
 
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}
         </div>
       ) : news.length === 0 ? (
-        <Card className="py-16 text-center">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl py-16 text-center dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08]">
           <Newspaper className="mx-auto h-12 w-12 text-muted-foreground/40" />
-          <p className="mt-4 text-muted-foreground">Hozircha yangiliklar yo'q</p>
-        </Card>
+          <p className="mt-4 text-muted-foreground">Hozircha yangiliklar yo&apos;q</p>
+        </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {news.map((item) => (
-            <Card
+            <div
               key={item.id}
-              className="cursor-pointer transition-all hover:shadow-md hover:border-blue-200"
+              className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl cursor-pointer transition-all hover:shadow-lg hover:scale-[1.01] group dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08]"
               onClick={() => openArticle(item.slug)}
             >
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  {item.is_pinned && <Pin className="h-3.5 w-3.5 text-blue-600" />}
-                  {item.category && <Badge variant="secondary" className="text-xs">{item.category}</Badge>}
+              <div className="p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  {item.is_pinned && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-400/10 text-sky-500 px-2 py-0.5 text-[10px] font-semibold">
+                      <Pin className="h-2.5 w-2.5" /> Muhim
+                    </span>
+                  )}
+                  {item.category && (
+                    <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{item.category}</span>
+                  )}
                 </div>
-                <CardTitle className="text-base leading-snug mt-2">{item.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {item.summary && <p className="text-sm text-muted-foreground line-clamp-2">{item.summary}</p>}
-                <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                <h3 className="text-[16px] font-bold leading-snug group-hover:text-sky-500 dark:hover:text-sky-400 transition-colors">{item.title}</h3>
+                {item.summary && <p className="text-[14px] text-muted-foreground mt-2 line-clamp-2">{item.summary}</p>}
+                <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
                   <span>{new Date(item.created_at).toLocaleDateString("uz")}</span>
                   <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {item.view_count}</span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}

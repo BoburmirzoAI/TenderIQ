@@ -11,21 +11,9 @@ import {
   TrendingUp,
   BarChart3,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import api from "@/lib/api";
-import { formatAmount } from "@/lib/format";
 import { CATEGORIES, REGIONS } from "@/types";
 import type { Company } from "@/types";
 
@@ -37,7 +25,7 @@ interface CompanyStats {
 }
 
 export default function CompanyPage() {
-  const [company, setCompany] = useState<Company | null>(null);
+  const [, setCompany] = useState<Company | null>(null);
   const [stats, setStats] = useState<CompanyStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -148,11 +136,18 @@ export default function CompanyPage() {
     );
   }
 
+  const statCards = [
+    { label: "Mos tenderlar", value: stats?.total_matched, icon: Target, gradient: "from-sky-400/10 to-sky-500/20 dark:from-sky-400/20 dark:to-sky-400/30", iconColor: "text-sky-500 dark:text-sky-400" },
+    { label: "Saqlangan", value: stats?.total_saved, icon: Bookmark, gradient: "from-amber-500/10 to-amber-600/20 dark:from-amber-400/20 dark:to-amber-500/30", iconColor: "text-amber-600 dark:text-amber-400" },
+    { label: "O'rtacha moslik", value: stats?.avg_match_score != null ? `${stats.avg_match_score.toFixed(0)}%` : "0%", icon: TrendingUp, gradient: "from-green-500/10 to-green-600/20 dark:from-green-400/20 dark:to-green-500/30", iconColor: "text-green-600 dark:text-green-400" },
+    { label: "Faol tenderlar", value: stats?.active_tenders, icon: BarChart3, gradient: "from-purple-500/10 to-purple-600/20 dark:from-purple-400/20 dark:to-purple-500/30", iconColor: "text-purple-600 dark:text-purple-400" },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Kompaniya profili</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Kompaniya profili</h1>
+        <p className="text-[14px] text-muted-foreground mt-1">
           {isNew
             ? "Kompaniya profilingizni yarating"
             : "Kompaniya ma'lumotlaringizni boshqaring"}
@@ -161,61 +156,37 @@ export default function CompanyPage() {
 
       {!isNew && stats && (
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Mos tenderlar</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total_matched}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Saqlangan</CardTitle>
-              <Bookmark className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total_saved}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">O&apos;rtacha moslik</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.avg_match_score?.toFixed(0) ?? 0}%
+          {statCards.map((s) => {
+            const Icon = s.icon;
+            return (
+              <div key={s.label} className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.01]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[13px] font-medium text-muted-foreground">{s.label}</span>
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br ${s.gradient}`}>
+                    <Icon className={`h-4 w-4 ${s.iconColor}`} />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold tracking-tight">{s.value}</div>
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Faol tenderlar</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.active_tenders}</div>
-            </CardContent>
-          </Card>
+            );
+          })}
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Asosiy ma&apos;lumotlar
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          {/* Basic info */}
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <h3 className="text-[15px] font-semibold flex items-center gap-2 mb-5">
+              <Building2 className="h-5 w-5" />
+              Asosiy ma&apos;lumotlar
+            </h3>
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Kompaniya nomi *</Label>
-                <Input
+                <input
                   id="name"
+                  className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   value={form.name}
                   onChange={(e) => update("name", e.target.value)}
                   required
@@ -223,8 +194,9 @@ export default function CompanyPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="stir">STIR (soliq raqami)</Label>
-                <Input
+                <input
                   id="stir"
+                  className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   value={form.stir}
                   onChange={(e) => update("stir", e.target.value)}
                   maxLength={9}
@@ -233,8 +205,9 @@ export default function CompanyPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Tavsif</Label>
-                <Textarea
+                <textarea
                   id="description"
+                  className="w-full min-h-[100px] rounded-xl border border-black/10 bg-white/80 px-4 py-3 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10 resize-y"
                   value={form.description}
                   onChange={(e) => update("description", e.target.value)}
                   rows={4}
@@ -244,33 +217,35 @@ export default function CompanyPage() {
                 <Label htmlFor="keywords">
                   Kalit so&apos;zlar (vergul bilan ajratilgan)
                 </Label>
-                <Input
+                <input
                   id="keywords"
+                  className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   value={form.keywords}
                   onChange={(e) => update("keywords", e.target.value)}
                   placeholder="qurilish, ta'mirlash, loyiha"
                 />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Aloqa ma&apos;lumotlari</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          {/* Contact info */}
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <h3 className="text-[15px] font-semibold mb-5">Aloqa ma&apos;lumotlari</h3>
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="contact_person">Mas&apos;ul shaxs</Label>
-                <Input
+                <input
                   id="contact_person"
+                  className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   value={form.contact_person}
                   onChange={(e) => update("contact_person", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contact_phone">Telefon</Label>
-                <Input
+                <input
                   id="contact_phone"
+                  className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   value={form.contact_phone}
                   onChange={(e) => update("contact_phone", e.target.value)}
                   placeholder="+998 90 123 45 67"
@@ -278,16 +253,18 @@ export default function CompanyPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">Manzil</Label>
-                <Input
+                <input
                   id="address"
+                  className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   value={form.address}
                   onChange={(e) => update("address", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="website">Veb-sayt</Label>
-                <Input
+                <input
                   id="website"
+                  className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   value={form.website}
                   onChange={(e) => update("website", e.target.value)}
                   placeholder="https://example.uz"
@@ -296,97 +273,97 @@ export default function CompanyPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="min_amount">Min summa (UZS)</Label>
-                  <Input
+                  <input
                     id="min_amount"
                     type="number"
+                    className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     value={form.min_amount}
                     onChange={(e) => update("min_amount", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="max_amount">Max summa (UZS)</Label>
-                  <Input
+                  <input
                     id="max_amount"
                     type="number"
+                    className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     value={form.max_amount}
                     onChange={(e) => update("max_amount", e.target.value)}
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Kategoriyalar</CardTitle>
-              <CardDescription>
-                Kompaniyangiz faoliyat sohalarini tanlang
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map((cat) => (
-                  <Badge
-                    key={cat.value}
-                    variant={
-                      form.categories.includes(cat.value)
-                        ? "default"
-                        : "outline"
-                    }
-                    className="cursor-pointer"
-                    onClick={() => toggleArray("categories", cat.value)}
-                  >
-                    {cat.label}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Categories */}
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <h3 className="text-[15px] font-semibold mb-1">Kategoriyalar</h3>
+            <p className="text-[13px] text-muted-foreground mb-4">
+              Kompaniyangiz faoliyat sohalarini tanlang
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.value}
+                  type="button"
+                  className={`rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-all active:scale-[0.97] ${
+                    form.categories.includes(cat.value)
+                      ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] shadow-sm"
+                      : "border border-black/10 bg-white/70 backdrop-blur hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+                  }`}
+                  onClick={() => toggleArray("categories", cat.value)}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Viloyatlar</CardTitle>
-              <CardDescription>
-                Faoliyat olib boradigan viloyatlaringiz
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {REGIONS.map((reg) => (
-                  <Badge
-                    key={reg.value}
-                    variant={
-                      form.regions.includes(reg.value)
-                        ? "default"
-                        : "outline"
-                    }
-                    className="cursor-pointer"
-                    onClick={() => toggleArray("regions", reg.value)}
-                  >
-                    {reg.label}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Regions */}
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <h3 className="text-[15px] font-semibold mb-1">Viloyatlar</h3>
+            <p className="text-[13px] text-muted-foreground mb-4">
+              Faoliyat olib boradigan viloyatlaringiz
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {REGIONS.map((reg) => (
+                <button
+                  key={reg.value}
+                  type="button"
+                  className={`rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-all active:scale-[0.97] ${
+                    form.regions.includes(reg.value)
+                      ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] shadow-sm"
+                      : "border border-black/10 bg-white/70 backdrop-blur hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+                  }`}
+                  onClick={() => toggleArray("regions", reg.value)}
+                >
+                  {reg.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="mt-6 flex justify-end">
-          <Button type="submit" disabled={saving} size="lg">
+          <button
+            type="submit"
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-full bg-[#1d1d1f] text-white px-8 py-3 text-[14px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             {saving ? (
               "Saqlanmoqda..."
             ) : isNew ? (
               <>
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="h-4 w-4" />
                 Profil yaratish
               </>
             ) : (
               <>
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="h-4 w-4" />
                 Saqlash
               </>
             )}
-          </Button>
+          </button>
         </div>
       </form>
     </div>

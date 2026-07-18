@@ -1,12 +1,15 @@
 import { create } from "zustand";
 import api from "@/lib/api";
-import type { User, TokenResponse } from "@/types";
+import type { User, TokenResponse, UzexRegisterData, UzexLoginData } from "@/types";
+
+type AuthMode = "basic" | "uzex";
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   initialized: boolean;
+  authMode: AuthMode;
   login: (email: string, password: string) => Promise<void>;
   register: (
     email: string,
@@ -14,10 +17,18 @@ interface AuthState {
     full_name: string,
     phone?: string
   ) => Promise<void>;
+  uzexLogin: (data: UzexLoginData) => Promise<void>;
+  uzexRegister: (data: UzexRegisterData) => Promise<void>;
+  fetchAuthMode: () => Promise<AuthMode>;
   logout: () => void;
   loadUser: () => Promise<void>;
   setUser: (user: User) => void;
   init: () => void;
+}
+
+function storeTokens(tokens: TokenResponse) {
+  localStorage.setItem("access_token", tokens.access_token);
+  localStorage.setItem("refresh_token", tokens.refresh_token);
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -25,6 +36,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: false,
   initialized: false,
+  authMode: "basic",
 
   init: () => {
     if (get().initialized) return;
@@ -37,9 +49,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       "/v1/auth/login",
       { email, password }
     );
-    const tokens = data.data;
-    localStorage.setItem("access_token", tokens.access_token);
-    localStorage.setItem("refresh_token", tokens.refresh_token);
+    storeTokens(data.data);
     set({ isAuthenticated: true });
   },
 
@@ -48,10 +58,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       "/v1/auth/register",
       { email, password, full_name, phone }
     );
-    const tokens = data.data;
-    localStorage.setItem("access_token", tokens.access_token);
-    localStorage.setItem("refresh_token", tokens.refresh_token);
+    storeTokens(data.data);
     set({ isAuthenticated: true });
+  },
+
+  uzexLogin: async (loginData) => {
+    const { data } = await api.post<{ data: TokenResponse }>(
+      "/v1/auth/uzex-login",
+      loginData
+    );
+    storeTokens(data.data);
+    set({ isAuthenticated: true });
+  },
+
+  uzexRegister: async (registerData) => {
+    const { data } = await api.post<{ data: TokenResponse }>(
+      "/v1/auth/uzex-register",
+      registerData
+    );
+    storeTokens(data.data);
+    set({ isAuthenticated: true });
+  },
+
+  fetchAuthMode: async () => {
+    try {
+      const { data } = await api.get<{ data: { mode: AuthMode } }>("/v1/auth/mode");
+      const mode = data.data.mode;
+      set({ authMode: mode });
+      return mode;
+    } catch {
+      return "basic";
+    }
   },
 
   logout: () => {

@@ -6,20 +6,10 @@ import {
   CreditCard,
   Clock,
   CheckCircle,
-  XCircle,
+
   ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -135,158 +125,145 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em] flex items-center gap-2">
           <Wallet className="h-6 w-6" />
           To&apos;lovlar
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground mt-1">
           To&apos;lov qilish va tarixni ko&apos;rish
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Jami to&apos;langan</CardTitle>
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[16px] font-bold mb-1 text-sm font-medium">Jami to&apos;langan</h3>
             <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatAmount(totalPaid)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">To&apos;lovlar soni</CardTitle>
-            <CreditCard className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{payments.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Kutilmoqda</CardTitle>
+          </div>
+          <div className="text-2xl font-bold">{formatAmount(totalPaid)}</div>
+        </div>
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[16px] font-bold mb-1 text-sm font-medium">To&apos;lovlar soni</h3>
+            <CreditCard className="h-4 w-4 text-sky-400" />
+          </div>
+          <div className="text-2xl font-bold">{payments.length}</div>
+        </div>
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[16px] font-bold mb-1 text-sm font-medium">Kutilmoqda</h3>
             <Clock className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {payments.filter((p) => p.status === "pending").length}
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-2xl font-bold">
+            {payments.filter((p) => p.status === "pending").length}
+          </div>
+        </div>
       </div>
 
       {/* New Payment */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Yangi to&apos;lov</CardTitle>
-          <CardDescription>
-            Obuna rejangizni yangilash uchun to&apos;lov qiling
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Select
-              value={selectedPlan}
-              onValueChange={(v) => setSelectedPlan(v ?? "")}
-            >
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Reja tanlang" />
-              </SelectTrigger>
-              <SelectContent>
-                {plans.map((plan) => (
-                  <SelectItem key={plan.name} value={plan.name}>
-                    {plan.name.charAt(0).toUpperCase() + plan.name.slice(1)} —{" "}
-                    {formatAmount(plan.price_uzs)}/oy
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={selectedProvider}
-              onValueChange={(v) => setSelectedProvider(v ?? "")}
-            >
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="To'lov tizimi" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="click">Click.uz</SelectItem>
-                <SelectItem value="payme">Payme</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={handlePayment}
-              disabled={paying || !selectedPlan || !selectedProvider}
-            >
-              {paying ? "Yaratilmoqda..." : "To'lov qilish"}
-              <ArrowUpRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+        <h3 className="text-[16px] font-bold mb-1">Yangi to&apos;lov</h3>
+        <p className="text-[13px] text-muted-foreground mb-4">
+          Obuna rejangizni yangilash uchun to&apos;lov qiling
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Select
+            value={selectedPlan}
+            onValueChange={(v) => setSelectedPlan(v ?? "")}
+          >
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Reja tanlang" />
+            </SelectTrigger>
+            <SelectContent>
+              {plans.map((plan) => (
+                <SelectItem key={plan.name} value={plan.name}>
+                  {plan.name.charAt(0).toUpperCase() + plan.name.slice(1)} —{" "}
+                  {formatAmount(plan.price_uzs)}/oy
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={selectedProvider}
+            onValueChange={(v) => setSelectedProvider(v ?? "")}
+          >
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="To'lov tizimi" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="click">Click.uz</SelectItem>
+              <SelectItem value="payme">Payme</SelectItem>
+            </SelectContent>
+          </Select>
+          <button
+            className="rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] disabled:opacity-50"
+            onClick={handlePayment}
+            disabled={paying || !selectedPlan || !selectedProvider}
+          >
+            {paying ? "Yaratilmoqda..." : "To'lov qilish"}
+            <ArrowUpRight className="ml-1 h-4 w-4 inline" />
+          </button>
+        </div>
+      </div>
 
       {/* Payment History */}
-      <Card>
-        <CardHeader>
-          <CardTitle>To&apos;lov tarixi</CardTitle>
-          <CardDescription>Barcha o&apos;tgan to&apos;lovlar</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {payments.length > 0 ? (
-            <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sana</TableHead>
-                  <TableHead>Reja</TableHead>
-                  <TableHead>Tizim</TableHead>
-                  <TableHead>Tranzaksiya ID</TableHead>
-                  <TableHead className="text-right">Summa</TableHead>
-                  <TableHead>Holat</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {payments.map((payment) => {
-                  const s = statusMap[payment.status] ?? {
-                    label: payment.status,
-                    variant: "secondary" as const,
-                  };
-                  return (
-                    <TableRow key={payment.id}>
-                      <TableCell className="text-sm">
-                        {formatDateTime(payment.created_at)}
-                      </TableCell>
-                      <TableCell className="capitalize font-medium">
-                        {payment.plan}
-                      </TableCell>
-                      <TableCell className="capitalize">
-                        {payment.provider}
-                      </TableCell>
-                      <TableCell className="text-xs font-mono">
-                        {payment.transaction_id ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatAmount(payment.amount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={s.variant}>{s.label}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <Wallet className="h-12 w-12 mb-3 opacity-30" />
-              <p className="font-medium">To&apos;lovlar mavjud emas</p>
-              <p className="text-sm">Birinchi to&apos;lovingizni yuqorida amalga oshiring</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+        <h3 className="text-[16px] font-bold mb-1">To&apos;lov tarixi</h3>
+        <p className="text-[13px] text-muted-foreground mb-4">Barcha o&apos;tgan to&apos;lovlar</p>
+        {payments.length > 0 ? (
+          <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Sana</TableHead>
+                <TableHead>Reja</TableHead>
+                <TableHead>Tizim</TableHead>
+                <TableHead>Tranzaksiya ID</TableHead>
+                <TableHead className="text-right">Summa</TableHead>
+                <TableHead>Holat</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payments.map((payment) => {
+                const s = statusMap[payment.status] ?? {
+                  label: payment.status,
+                  variant: "secondary" as const,
+                };
+                return (
+                  <TableRow key={payment.id}>
+                    <TableCell className="text-sm">
+                      {formatDateTime(payment.created_at)}
+                    </TableCell>
+                    <TableCell className="capitalize font-medium">
+                      {payment.plan}
+                    </TableCell>
+                    <TableCell className="capitalize">
+                      {payment.provider}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono">
+                      {payment.transaction_id ?? "---"}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatAmount(payment.amount)}
+                    </TableCell>
+                    <TableCell>
+                      <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold">{s.label}</span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Wallet className="h-12 w-12 mb-3 opacity-30" />
+            <p className="font-medium">To&apos;lovlar mavjud emas</p>
+            <p className="text-sm">Birinchi to&apos;lovingizni yuqorida amalga oshiring</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

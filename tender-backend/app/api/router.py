@@ -9,6 +9,7 @@ from app.api.v1.tenders.notes import router as notes_router
 from app.api.v1.tenders.saved_searches import router as saved_searches_router
 from app.api.v1.tenders.purchase_plans import router as purchase_plans_router
 from app.api.v1.tenders.contracts import router as contracts_router
+from app.api.v1.tenders.public_stats import router as public_stats_router
 from app.api.v1.companies.companies import router as companies_router
 from app.api.v1.companies.teams import router as teams_router
 from app.api.v1.companies.competitors import router as competitors_router
@@ -47,6 +48,7 @@ api_router.include_router(notes_router, prefix="/v1/notes", tags=["Notes"])
 api_router.include_router(saved_searches_router, prefix="/v1/saved-searches", tags=["Saved Searches"])
 api_router.include_router(purchase_plans_router, prefix="/v1/purchase-plans", tags=["Purchase Plans"])
 api_router.include_router(contracts_router, prefix="/v1/contracts", tags=["Contracts"])
+api_router.include_router(public_stats_router, prefix="/v1/public", tags=["Public"])
 
 # Companies
 api_router.include_router(companies_router, prefix="/v1/companies", tags=["Companies"])

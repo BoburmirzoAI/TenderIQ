@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Headphones, Plus, Send, MessageSquare, Clock, CheckCircle2, AlertCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Headphones, Plus, Send, MessageSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,7 +20,7 @@ interface Ticket {
 }
 
 const statusMap: Record<string, { label: string; color: string }> = {
-  open: { label: "Ochiq", color: "bg-blue-100 text-blue-700" },
+  open: { label: "Ochiq", color: "bg-sky-100 text-sky-600" },
   in_progress: { label: "Jarayonda", color: "bg-yellow-100 text-yellow-700" },
   waiting: { label: "Kutilmoqda", color: "bg-orange-100 text-orange-700" },
   resolved: { label: "Hal qilindi", color: "bg-green-100 text-green-700" },
@@ -74,21 +70,19 @@ export default function SupportPage() {
     const st = statusMap[selected.status] || statusMap.open;
     return (
       <div className="space-y-6">
-        <button onClick={() => { setSelected(null); load(); }} className="text-sm text-blue-600 hover:underline">
+        <button onClick={() => { setSelected(null); load(); }} className="text-sm text-sky-500 hover:underline">
           &larr; Orqaga
         </button>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>{selected.subject}</CardTitle>
-              <Badge className={st.color}>{st.label}</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">{selected.description}</p>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[16px] font-bold mb-1">{selected.subject}</h3>
+            <span className={"rounded-full px-2.5 py-0.5 text-[12px] font-semibold " + st.color}>{st.label}</span>
+          </div>
+          <p className="text-sm text-muted-foreground">{selected.description}</p>
+          <div className="space-y-4 mt-4">
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {selected.messages.map((m) => (
-                <div key={m.id} className={`rounded-lg p-3 ${m.is_staff ? "bg-blue-50 ml-8" : "bg-muted mr-8"}`}>
+                <div key={m.id} className={`rounded-lg p-3 ${m.is_staff ? "bg-sky-50 ml-8" : "bg-muted mr-8"}`}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium">
                       {m.is_staff ? "Texnik yordam" : m.user_name || "Siz"}
@@ -109,13 +103,13 @@ export default function SupportPage() {
                   onChange={(e) => setReply(e.target.value)}
                   className="min-h-[80px]"
                 />
-                <Button onClick={sendReply} size="icon" className="h-20 w-12">
+                <button className="rounded-xl bg-[#1d1d1f] text-white h-20 w-12 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] inline-flex items-center justify-center" onClick={sendReply}>
                   <Send className="h-4 w-4" />
-                </Button>
+                </button>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -123,15 +117,13 @@ export default function SupportPage() {
   if (creating) {
     return (
       <div className="space-y-6">
-        <button onClick={() => setCreating(false)} className="text-sm text-blue-600 hover:underline">
+        <button onClick={() => setCreating(false)} className="text-sm text-sky-500 hover:underline">
           &larr; Orqaga
         </button>
-        <Card>
-          <CardHeader>
-            <CardTitle>Yangi ticket</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input placeholder="Mavzu" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <h3 className="text-[16px] font-bold mb-1">Yangi ticket</h3>
+          <div className="space-y-4 mt-4">
+            <input className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" placeholder="Mavzu" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
             <Textarea
               placeholder="Muammo tavsifi (kamida 10 belgi)"
               value={form.description}
@@ -144,7 +136,7 @@ export default function SupportPage() {
                 <SelectContent>
                   <SelectItem value="general">Umumiy</SelectItem>
                   <SelectItem value="technical">Texnik</SelectItem>
-                  <SelectItem value="billing">To'lov</SelectItem>
+                  <SelectItem value="billing">To&apos;lov</SelectItem>
                   <SelectItem value="tender">Tender</SelectItem>
                   <SelectItem value="account">Hisob</SelectItem>
                   <SelectItem value="bug">Xatolik</SelectItem>
@@ -155,17 +147,17 @@ export default function SupportPage() {
                 <SelectTrigger><SelectValue placeholder="Muhimlik" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Past</SelectItem>
-                  <SelectItem value="medium">O'rta</SelectItem>
+                  <SelectItem value="medium">O&apos;rta</SelectItem>
                   <SelectItem value="high">Yuqori</SelectItem>
                   <SelectItem value="urgent">Shoshilinch</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={createTicket} disabled={!form.subject || form.description.length < 10}>
+            <button className="rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] disabled:opacity-50" onClick={createTicket} disabled={!form.subject || form.description.length < 10}>
               Yuborish
-            </Button>
-          </CardContent>
-        </Card>
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -174,12 +166,12 @@ export default function SupportPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Texnik yordam</h1>
-          <p className="text-muted-foreground">Muammolaringizni hal qiling</p>
+          <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Texnik yordam</h1>
+          <p className="text-sm text-muted-foreground mt-1">Muammolaringizni hal qiling</p>
         </div>
-        <Button onClick={() => setCreating(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Yangi ticket
-        </Button>
+        <button className="rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f]" onClick={() => setCreating(true)}>
+          <span className="inline-flex items-center"><Plus className="mr-2 h-4 w-4" /> Yangi ticket</span>
+        </button>
       </div>
 
       {loading ? (
@@ -187,27 +179,27 @@ export default function SupportPage() {
           {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
         </div>
       ) : tickets.length === 0 ? (
-        <Card className="py-16 text-center">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl py-16 text-center dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all">
           <Headphones className="mx-auto h-12 w-12 text-muted-foreground/40" />
-          <p className="mt-4 text-muted-foreground">Hozircha ticket yo'q</p>
-          <Button className="mt-4" onClick={() => setCreating(true)}>Yangi ticket yaratish</Button>
-        </Card>
+          <p className="mt-4 text-muted-foreground">Hozircha ticket yo&apos;q</p>
+          <button className="rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] mt-4" onClick={() => setCreating(true)}>Yangi ticket yaratish</button>
+        </div>
       ) : (
         <div className="space-y-3">
           {tickets.map((t) => {
             const st = statusMap[t.status] || statusMap.open;
             return (
-              <Card
+              <div
                 key={t.id}
-                className="cursor-pointer transition-all hover:shadow-md hover:border-blue-200"
+                className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all cursor-pointer hover:shadow-md hover:border-sky-200"
                 onClick={() => setSelected(t)}
               >
-                <CardContent className="flex items-center justify-between p-4">
+                <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{t.subject}</p>
-                      <Badge className={st.color}>{st.label}</Badge>
-                      <Badge variant="outline" className="text-xs">{t.category}</Badge>
+                      <span className={"rounded-full px-2.5 py-0.5 text-[12px] font-semibold " + st.color}>{st.label}</span>
+                      <span className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold">{t.category}</span>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{t.description}</p>
                   </div>
@@ -217,8 +209,8 @@ export default function SupportPage() {
                     </span>
                     <span>{new Date(t.created_at).toLocaleDateString("uz")}</span>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>

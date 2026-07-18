@@ -1,5 +1,6 @@
 """Tender repository with filtering and full-text search."""
 
+import re
 from datetime import datetime
 from typing import Any, Optional
 
@@ -58,15 +59,25 @@ class TenderRepository(BaseRepository[Tender]):
             conditions.append(Tender.deadline >= deadline_after)
         if search:
             escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-            search_pattern = f"%{escaped}%"
-            conditions.append(
-                or_(
-                    Tender.title.ilike(search_pattern, escape="\\"),
-                    Tender.description.ilike(search_pattern, escape="\\"),
-                    Tender.organization.ilike(search_pattern, escape="\\"),
-                    Tender.search_text.ilike(search_pattern, escape="\\"),
+            if len(search) <= 3:
+                conditions.append(
+                    or_(
+                        Tender.category.ilike(escaped, escape="\\"),
+                        Tender.title.op("~*")(f"\\m{re.escape(search)}\\M"),
+                        Tender.organization.op("~*")(f"\\m{re.escape(search)}\\M"),
+                        Tender.search_text.op("~*")(f"\\m{re.escape(search)}\\M"),
+                    )
                 )
-            )
+            else:
+                search_pattern = f"%{escaped}%"
+                conditions.append(
+                    or_(
+                        Tender.title.ilike(search_pattern, escape="\\"),
+                        Tender.description.ilike(search_pattern, escape="\\"),
+                        Tender.organization.ilike(search_pattern, escape="\\"),
+                        Tender.search_text.ilike(search_pattern, escape="\\"),
+                    )
+                )
 
         where_clause = and_(*conditions)
 

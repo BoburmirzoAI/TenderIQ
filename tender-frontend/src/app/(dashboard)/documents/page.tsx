@@ -4,9 +4,9 @@ import { useState } from "react";
 import {
   FileText,
   Upload,
-  CheckCircle,
+
   CheckCircle2,
-  AlertCircle,
+
   XCircle,
   AlertTriangle,
   Calendar,
@@ -20,22 +20,13 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
+
+
+
+
 } from "@/components/ui/tabs";
 import api from "@/lib/api";
 
@@ -173,99 +164,101 @@ export default function DocumentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em] flex items-center gap-2">
           <FileText className="h-6 w-6" />
           Hujjat tekshiruvi
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground mt-1">
           Tender hujjatini yuklang — talablar avtomatik tekshiriladi
         </p>
       </div>
 
       {/* Upload area */}
-      <Card>
-        <CardContent className="p-6">
-          <div
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-              dragActive
-                ? "border-primary bg-primary/5"
-                : "border-muted-foreground/25 hover:border-primary/50"
-            }`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragActive(true);
-            }}
-            onDragLeave={() => setDragActive(false)}
-            onDrop={handleDrop}
-          >
-            <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-1">
-              PDF faylni bu yerga tashlang
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              yoki tugmani bosib tanlang (max 10 MB)
-            </p>
-            <div className="flex items-center justify-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => document.getElementById("doc-file-input")?.click()}
-              >
-                Fayl tanlash
-              </Button>
-              {file && (
-                <Button onClick={handleCheck} disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Tekshirilmoqda...
-                    </>
-                  ) : (
-                    <>
-                      <FileCheck className="mr-2 h-4 w-4" />
-                      Tekshirish
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-            <input
-              id="doc-file-input"
-              type="file"
-              accept=".pdf"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files?.[0]) handleFile(e.target.files[0]);
-              }}
-            />
+      <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+        <div
+          className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+            dragActive
+              ? "border-primary bg-primary/5"
+              : "border-muted-foreground/25 hover:border-primary/50"
+          }`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragActive(true);
+          }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={handleDrop}
+        >
+          <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-1">
+            PDF faylni bu yerga tashlang
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            yoki tugmani bosib tanlang (max 10 MB)
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+              onClick={() => document.getElementById("doc-file-input")?.click()}
+            >
+              Fayl tanlash
+            </button>
             {file && (
-              <div className="mt-4 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                <FileText className="h-4 w-4 text-red-500" />
-                <span className="font-medium">{file.name}</span>
-                <span className="text-muted-foreground">
-                  ({(file.size / 1024 / 1024).toFixed(1)} MB)
-                </span>
-              </div>
+              <button
+                className="rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] disabled:opacity-50"
+                onClick={handleCheck}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+                    Tekshirilmoqda...
+                  </>
+                ) : (
+                  <>
+                    <FileCheck className="mr-2 h-4 w-4 inline" />
+                    Tekshirish
+                  </>
+                )}
+              </button>
             )}
           </div>
-        </CardContent>
-      </Card>
+          <input
+            id="doc-file-input"
+            type="file"
+            accept=".pdf"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.[0]) handleFile(e.target.files[0]);
+            }}
+          />
+          {file && (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+              <FileText className="h-4 w-4 text-red-500" />
+              <span className="font-medium">{file.name}</span>
+              <span className="text-muted-foreground">
+                ({(file.size / 1024 / 1024).toFixed(1)} MB)
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Results */}
       {checkResult && (
         <div className="space-y-4">
           {/* Summary cards */}
           <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardContent className="pt-4 text-center">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="pt-4 text-center">
                 <p className="text-sm text-muted-foreground">Tugallanganlik</p>
                 <p className="text-3xl font-bold text-primary">
                   {checkResult.completeness_pct}%
                 </p>
                 <Progress value={checkResult.completeness_pct} className="h-2 mt-2" />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="pt-4 text-center">
                 <p className="text-sm text-muted-foreground">Xavf darajasi</p>
                 {riskInfo && (
                   <div className={`flex items-center justify-center gap-2 mt-1 ${riskInfo.color}`}>
@@ -279,10 +272,10 @@ export default function DocumentsPage() {
                     <p className="text-xl font-bold">{riskInfo.label}</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="pt-4 text-center">
                 <p className="text-sm text-muted-foreground">Majburiy talablar</p>
                 <p className="text-2xl font-bold">
                   <span className="text-green-600">{checkResult.found_required}</span>
@@ -291,71 +284,65 @@ export default function DocumentsPage() {
                     / {checkResult.total_required}
                   </span>
                 </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="pt-4 text-center">
                 <p className="text-sm text-muted-foreground">Hujjat</p>
                 <p className="text-lg font-bold">{checkResult.total_pages} sahifa</p>
                 <p className="text-xs text-muted-foreground">
                   {checkResult.word_count.toLocaleString()} so&apos;z
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Tips */}
           {checkResult.tips.length > 0 && (
-            <Card className="border-blue-200 dark:border-blue-900">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4 text-blue-600" />
+            <div className="rounded-2xl border border-sky-200 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-sky-900 transition-all hover:shadow-lg">
+              <div className="pb-2">
+                <h3 className="text-[16px] font-bold mb-1 flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-sky-500" />
                   Maslahatlar
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-1">
-                  {checkResult.tips.map((tip, i) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+                </h3>
+              </div>
+              <ul className="space-y-1">
+                {checkResult.tips.map((tip, i) => (
+                  <li key={i} className="text-sm flex items-start gap-2">
+                    <Info className="h-4 w-4 text-sky-400 mt-0.5 flex-shrink-0" />
+                    {tip}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {/* Missing required */}
           {checkResult.missing_required.length > 0 && (
-            <Card className="border-red-200 dark:border-red-900">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2 text-red-600">
+            <div className="rounded-2xl border border-red-200 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-red-900 transition-all hover:shadow-lg">
+              <div className="pb-2">
+                <h3 className="text-[16px] font-bold mb-1 flex items-center gap-2 text-red-600">
                   <XCircle className="h-4 w-4" />
                   Topilmagan majburiy talablar ({checkResult.missing_required.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {checkResult.missing_required.map((item) => (
-                    <Badge key={item.name} variant="destructive" className="text-xs">
-                      {item.name_uz}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                </h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {checkResult.missing_required.map((item) => (
+                  <span key={item.name} className="rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 px-2.5 py-0.5 text-[12px] font-semibold">
+                    {item.name_uz}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Requirements by category */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">
-                Batafsil tekshiruv natijalari
-              </CardTitle>
-              <CardDescription>{checkResult.filename}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <h3 className="text-[16px] font-bold mb-1">
+              Batafsil tekshiruv natijalari
+            </h3>
+            <p className="text-[13px] text-muted-foreground mb-4">{checkResult.filename}</p>
+            <div className="space-y-4">
               {groupedRequirements.map(([category, reqs]) => (
                 <div key={category}>
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">
@@ -378,23 +365,20 @@ export default function DocumentsPage() {
                             )}
                             <span className="text-sm">{req.name_uz}</span>
                             {req.required && (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] px-1"
-                              >
+                              <span className="rounded-full border border-black/10 dark:border-white/10 px-1 py-0.5 text-[10px] font-semibold">
                                 Majburiy
-                              </Badge>
+                              </span>
                             )}
                           </div>
                           <div className="flex items-center gap-2">
                             {req.found ? (
-                              <Badge className="bg-green-100 text-green-700 text-xs">
+                              <span className="rounded-full bg-green-100 text-green-700 px-2.5 py-0.5 text-[12px] font-semibold">
                                 Topildi
-                              </Badge>
+                              </span>
                             ) : (
-                              <Badge variant="secondary" className="text-xs">
+                              <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold">
                                 Topilmadi
-                              </Badge>
+                              </span>
                             )}
                             {req.matches.length > 0 &&
                               (expandedReqs.has(req.name) ? (
@@ -423,49 +407,45 @@ export default function DocumentsPage() {
                   <Separator className="mt-2" />
                 </div>
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Dates and amounts */}
           <div className="grid gap-4 md:grid-cols-2">
             {checkResult.dates_found.length > 0 && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                <div className="pb-2">
+                  <h3 className="text-[16px] font-bold mb-1 flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     Topilgan sanalar ({checkResult.dates_found.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {checkResult.dates_found.map((date, i) => (
-                      <Badge key={i} variant="outline" className="text-xs">
-                        {date}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                  </h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {checkResult.dates_found.map((date, i) => (
+                    <span key={i} className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold">
+                      {date}
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
 
             {checkResult.amounts_found.length > 0 && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                <div className="pb-2">
+                  <h3 className="text-[16px] font-bold mb-1 flex items-center gap-2">
                     <DollarSign className="h-4 w-4" />
                     Topilgan summalar ({checkResult.amounts_found.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {checkResult.amounts_found.map((amount, i) => (
-                      <Badge key={i} variant="outline" className="text-xs">
-                        {amount}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                  </h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {checkResult.amounts_found.map((amount, i) => (
+                    <span key={i} className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold">
+                      {amount}
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>

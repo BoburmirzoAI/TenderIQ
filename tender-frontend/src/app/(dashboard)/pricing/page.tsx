@@ -1,17 +1,7 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import {
   Tabs,
@@ -20,8 +10,8 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import {
-  TrendingDown,
-  TrendingUp,
+
+
   Target,
   Loader2,
   Search,
@@ -175,135 +165,124 @@ export default function PricingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Narx strategiyasi</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Narx strategiyasi</h1>
+        <p className="text-[14px] text-muted-foreground mt-1">
           Tarixiy ma&apos;lumotlar asosida optimal narx tahlili
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Tender narxini tahlil qilish
-          </CardTitle>
-          <CardDescription>
-            Tender ID kiriting — o&apos;xshash tenderlar asosida optimal narx tavsiya qilinadi
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-3">
-            <Input
-              placeholder="Tender ID kiriting..."
-              value={tenderId}
-              onChange={(e) => setTenderId(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && analyzeTender()}
-              type="number"
-              className="max-w-xs"
-            />
-            <Button onClick={analyzeTender} disabled={loading || !tenderId}>
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Search className="h-4 w-4 mr-2" />
-              )}
-              Tahlil qilish
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Search Card */}
+      <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+        <div className="flex items-center gap-2 mb-1">
+          <Target className="h-5 w-5" />
+          <h2 className="text-[15px] font-semibold">Tender narxini tahlil qilish</h2>
+        </div>
+        <p className="text-[13px] text-muted-foreground mb-4">
+          Tender ID kiriting — o&apos;xshash tenderlar asosida optimal narx tavsiya qilinadi
+        </p>
+        <div className="flex gap-3">
+          <input
+            placeholder="Tender ID kiriting..."
+            value={tenderId}
+            onChange={(e) => setTenderId(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && analyzeTender()}
+            type="number"
+            className="max-w-xs rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] outline-none transition-all focus:ring-2 focus:ring-sky-400/30 focus:border-sky-300 dark:border-white/10 dark:bg-white/5 dark:focus:ring-sky-400/30"
+          />
+          <button
+            onClick={analyzeTender}
+            disabled={loading || !tenderId}
+            className="rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+            Tahlil qilish
+          </button>
+        </div>
+      </div>
 
       {analysis && (
         <div className="space-y-4">
           {!analysis.has_data ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="py-8 text-center text-muted-foreground">
                 <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>{analysis.message}</p>
                 <p className="text-sm mt-1">
                   Topilgan natijalar: {analysis.sample_count}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ) : (
             <>
               <div className="grid gap-4 md:grid-cols-3">
-                <Card className="border-green-200 dark:border-green-900">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-green-600" />
-                      Konservativ
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-green-600">
-                      {formatAmount(analysis.recommendations!.conservative.price)}{" "}
-                      <span className="text-sm font-normal">{analysis.currency}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      -{analysis.recommendations!.conservative.discount_pct}% chegirma
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {analysis.recommendations!.conservative.description}
-                    </p>
-                  </CardContent>
-                </Card>
+                {/* Conservative */}
+                <div className="rounded-2xl border border-green-200/60 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-green-500/20 transition-all hover:shadow-lg hover:scale-[1.02]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Shield className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium">Konservativ</span>
+                  </div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {formatAmount(analysis.recommendations!.conservative.price)}{" "}
+                    <span className="text-sm font-normal">{analysis.currency}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    -{analysis.recommendations!.conservative.discount_pct}% chegirma
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {analysis.recommendations!.conservative.description}
+                  </p>
+                </div>
 
-                <Card className="border-blue-200 dark:border-blue-900 ring-2 ring-blue-500/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-blue-600" />
-                      Optimal
-                      <Badge variant="secondary" className="text-xs">Tavsiya</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {formatAmount(analysis.recommendations!.optimal.price)}{" "}
-                      <span className="text-sm font-normal">{analysis.currency}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      -{analysis.recommendations!.optimal.discount_pct}% chegirma
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {analysis.recommendations!.optimal.description}
-                    </p>
-                  </CardContent>
-                </Card>
+                {/* Optimal */}
+                <div className="rounded-2xl border border-sky-200/60 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-sky-400/20 ring-2 ring-sky-400/20 transition-all hover:shadow-lg hover:scale-[1.02]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap className="h-4 w-4 text-sky-500" />
+                    <span className="text-sm font-medium">Optimal</span>
+                    <span className="rounded-full bg-sky-100 text-sky-600 px-2.5 py-0.5 text-[12px] font-semibold dark:bg-sky-900/40 dark:text-sky-300">Tavsiya</span>
+                  </div>
+                  <div className="text-2xl font-bold text-sky-500">
+                    {formatAmount(analysis.recommendations!.optimal.price)}{" "}
+                    <span className="text-sm font-normal">{analysis.currency}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    -{analysis.recommendations!.optimal.discount_pct}% chegirma
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {analysis.recommendations!.optimal.description}
+                  </p>
+                </div>
 
-                <Card className="border-orange-200 dark:border-orange-900">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <Flame className="h-4 w-4 text-orange-600" />
-                      Agressiv
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-orange-600">
-                      {formatAmount(analysis.recommendations!.aggressive.price)}{" "}
-                      <span className="text-sm font-normal">{analysis.currency}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      -{analysis.recommendations!.aggressive.discount_pct}% chegirma
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {analysis.recommendations!.aggressive.description}
-                    </p>
-                  </CardContent>
-                </Card>
+                {/* Aggressive */}
+                <div className="rounded-2xl border border-orange-200/60 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-orange-500/20 transition-all hover:shadow-lg hover:scale-[1.02]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Flame className="h-4 w-4 text-orange-600" />
+                    <span className="text-sm font-medium">Agressiv</span>
+                  </div>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {formatAmount(analysis.recommendations!.aggressive.price)}{" "}
+                    <span className="text-sm font-normal">{analysis.currency}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    -{analysis.recommendations!.aggressive.discount_pct}% chegirma
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {analysis.recommendations!.aggressive.description}
+                  </p>
+                </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">
-                      Chegirma taqsimoti
-                    </CardTitle>
-                    <CardDescription>
-                      {analysis.sample_count} ta yakunlangan tender asosida
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
+                {/* Distribution */}
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                  <h3 className="text-sm font-medium mb-1">Chegirma taqsimoti</h3>
+                  <p className="text-[13px] text-muted-foreground mb-4">
+                    {analysis.sample_count} ta yakunlangan tender asosida
+                  </p>
+                  <div className="space-y-3">
                     {analysis.distribution!.map((d) => (
                       <div key={d.label} className="space-y-1">
                         <div className="flex justify-between text-sm">
@@ -318,71 +297,66 @@ export default function PricingPage() {
                         />
                       </div>
                     ))}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">
-                      Statistika
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Tender summasi</p>
-                        <p className="text-lg font-semibold">
-                          {formatAmount(analysis.tender_amount)} {analysis.currency}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Namunalar</p>
-                        <p className="text-lg font-semibold">{analysis.sample_count} ta</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">O&apos;rtacha chegirma</p>
-                        <p className="text-lg font-semibold">
-                          {analysis.discount_stats!.avg_pct}%
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Median chegirma</p>
-                        <p className="text-lg font-semibold">
-                          {analysis.discount_stats!.median_pct}%
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Min chegirma</p>
-                        <p className="text-lg font-semibold">
-                          {analysis.discount_stats!.min_pct}%
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Max chegirma</p>
-                        <p className="text-lg font-semibold">
-                          {analysis.discount_stats!.max_pct}%
-                        </p>
-                      </div>
+                {/* Statistics */}
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                  <h3 className="text-sm font-medium mb-4">Statistika</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Tender summasi</p>
+                      <p className="text-lg font-semibold">
+                        {formatAmount(analysis.tender_amount)} {analysis.currency}
+                      </p>
                     </div>
-                    {analysis.category && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Tag className="h-3 w-3" /> {analysis.category}
-                      </div>
-                    )}
-                    {analysis.region && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="h-3 w-3" /> {analysis.region}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Namunalar</p>
+                      <p className="text-lg font-semibold">{analysis.sample_count} ta</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">O&apos;rtacha chegirma</p>
+                      <p className="text-lg font-semibold">
+                        {analysis.discount_stats!.avg_pct}%
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Median chegirma</p>
+                      <p className="text-lg font-semibold">
+                        {analysis.discount_stats!.median_pct}%
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Min chegirma</p>
+                      <p className="text-lg font-semibold">
+                        {analysis.discount_stats!.min_pct}%
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Max chegirma</p>
+                      <p className="text-lg font-semibold">
+                        {analysis.discount_stats!.max_pct}%
+                      </p>
+                    </div>
+                  </div>
+                  {analysis.category && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
+                      <Tag className="h-3 w-3" /> {analysis.category}
+                    </div>
+                  )}
+                  {analysis.region && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                      <MapPin className="h-3 w-3" /> {analysis.region}
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}
         </div>
       )}
 
-      <Separator />
+      <div className="h-px bg-gradient-to-r from-transparent via-black/10 to-transparent dark:via-white/10" />
 
       <Tabs defaultValue="categories">
         <TabsList>
@@ -403,48 +377,46 @@ export default function PricingPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : categoryStats.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="py-8 text-center text-muted-foreground">
                 Ma&apos;lumot topilmadi
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
               {categoryStats.map((cat) => (
-                <Card key={cat.category}>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-medium text-sm truncate">{cat.category}</h3>
-                      <Badge variant="outline">{cat.total_tenders} ta</Badge>
+                <div key={cat.category} className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.01]">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium text-sm truncate">{cat.category}</h3>
+                    <span className="rounded-full border border-black/10 bg-white/70 backdrop-blur px-2.5 py-0.5 text-[12px] font-semibold dark:border-white/10 dark:bg-white/5">{cat.total_tenders} ta</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">O&apos;rtacha</p>
+                      <p className="font-semibold text-sky-500 dark:text-sky-400">
+                        {cat.avg_discount_pct}%
+                      </p>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div>
-                        <p className="text-xs text-muted-foreground">O&apos;rtacha</p>
-                        <p className="font-semibold text-blue-600">
-                          {cat.avg_discount_pct}%
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Min</p>
-                        <p className="font-semibold text-green-600">
-                          {cat.min_discount_pct}%
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Max</p>
-                        <p className="font-semibold text-orange-600">
-                          {cat.max_discount_pct}%
-                        </p>
-                      </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Min</p>
+                      <p className="font-semibold text-green-600">
+                        {cat.min_discount_pct}%
+                      </p>
                     </div>
-                    <div className="mt-2">
-                      <Progress value={cat.avg_discount_pct} className="h-1.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Max</p>
+                      <p className="font-semibold text-orange-600">
+                        {cat.max_discount_pct}%
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      O&apos;rtacha g&apos;olib: {formatAmount(cat.avg_winning_amount)} UZS
-                    </p>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="mt-2">
+                    <Progress value={cat.avg_discount_pct} className="h-1.5" />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    O&apos;rtacha g&apos;olib: {formatAmount(cat.avg_winning_amount)} UZS
+                  </p>
+                </div>
               ))}
             </div>
           )}
@@ -456,39 +428,37 @@ export default function PricingPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : regionStats.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="py-8 text-center text-muted-foreground">
                 Ma&apos;lumot topilmadi
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {regionStats.map((reg) => (
-                <Card key={reg.region}>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-medium text-sm flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {reg.region}
-                      </h3>
-                      <Badge variant="outline">{reg.total_tenders} ta</Badge>
+                <div key={reg.region} className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.01]">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium text-sm flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> {reg.region}
+                    </h3>
+                    <span className="rounded-full border border-black/10 bg-white/70 backdrop-blur px-2.5 py-0.5 text-[12px] font-semibold dark:border-white/10 dark:bg-white/5">{reg.total_tenders} ta</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">O&apos;rtacha chegirma</p>
+                      <p className="text-xl font-bold text-sky-500">
+                        {reg.avg_discount_pct}%
+                      </p>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground">O&apos;rtacha chegirma</p>
-                        <p className="text-xl font-bold text-blue-600">
-                          {reg.avg_discount_pct}%
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">O&apos;rtacha g&apos;olib</p>
-                        <p className="font-medium">
-                          {formatAmount(reg.avg_winning_amount)} UZS
-                        </p>
-                      </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">O&apos;rtacha g&apos;olib</p>
+                      <p className="font-medium">
+                        {formatAmount(reg.avg_winning_amount)} UZS
+                      </p>
                     </div>
-                    <Progress value={reg.avg_discount_pct} className="h-1.5 mt-2" />
-                  </CardContent>
-                </Card>
+                  </div>
+                  <Progress value={reg.avg_discount_pct} className="h-1.5 mt-2" />
+                </div>
               ))}
             </div>
           )}
@@ -500,108 +470,94 @@ export default function PricingPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : !myHistory || myHistory.summary.total_bids === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="py-8 text-center text-muted-foreground">
                 <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>Hali taklif tarixi yo&apos;q</p>
                 <p className="text-sm mt-1">
                   Tenderga ariza berganingizda va narx ko&apos;rsatganingizda bu yerda ko&apos;rinadi
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ) : (
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                  <CardContent className="pt-4 text-center">
-                    <p className="text-sm text-muted-foreground">Jami takliflar</p>
-                    <p className="text-2xl font-bold">{myHistory.summary.total_bids}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4 text-center">
-                    <p className="text-sm text-muted-foreground">Yutilgan</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {myHistory.summary.wins}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4 text-center">
-                    <p className="text-sm text-muted-foreground">Yutish foizi</p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {myHistory.summary.win_rate}%
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4 text-center">
-                    <p className="text-sm text-muted-foreground">Yutish chegirmasi</p>
-                    <p className="text-2xl font-bold">
-                      {myHistory.summary.avg_win_discount
-                        ? `${myHistory.summary.avg_win_discount}%`
-                        : "—"}
-                    </p>
-                  </CardContent>
-                </Card>
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.02] text-center">
+                  <p className="text-sm text-muted-foreground">Jami takliflar</p>
+                  <p className="text-2xl font-bold mt-1">{myHistory.summary.total_bids}</p>
+                </div>
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.02] text-center">
+                  <p className="text-sm text-muted-foreground">Yutilgan</p>
+                  <p className="text-2xl font-bold text-green-600 mt-1">
+                    {myHistory.summary.wins}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.02] text-center">
+                  <p className="text-sm text-muted-foreground">Yutish foizi</p>
+                  <p className="text-2xl font-bold text-sky-500 mt-1">
+                    {myHistory.summary.win_rate}%
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.02] text-center">
+                  <p className="text-sm text-muted-foreground">Yutish chegirmasi</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {myHistory.summary.avg_win_discount
+                      ? `${myHistory.summary.avg_win_discount}%`
+                      : "—"}
+                  </p>
+                </div>
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">
-                    Taklif tarixi
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {myHistory.bids.map((bid, i) => (
-                      <div
-                        key={`${bid.tender_id}-${i}`}
-                        className="flex items-center justify-between p-3 rounded-lg border"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {bid.title}
-                          </p>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                            {bid.category && (
-                              <span className="flex items-center gap-1">
-                                <Tag className="h-3 w-3" /> {bid.category}
-                              </span>
-                            )}
-                            <span>
-                              Tender: {formatAmount(bid.tender_amount)} UZS
+              <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                <h3 className="text-sm font-medium mb-4">Taklif tarixi</h3>
+                <div className="space-y-2">
+                  {myHistory.bids.map((bid, i) => (
+                    <div
+                      key={`${bid.tender_id}-${i}`}
+                      className="flex items-center justify-between p-3 rounded-xl border border-black/5 bg-white/40 backdrop-blur transition-all hover:bg-white/70 hover:shadow-sm dark:border-white/5 dark:bg-white/[0.03] dark:hover:bg-white/[0.06]"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {bid.title}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                          {bid.category && (
+                            <span className="flex items-center gap-1">
+                              <Tag className="h-3 w-3" /> {bid.category}
                             </span>
-                          </div>
-                        </div>
-                        <div className="text-right ml-4">
-                          <p className="font-medium">
-                            {formatAmount(bid.bid_amount)} UZS
-                          </p>
-                          <div className="flex items-center gap-2 justify-end mt-1">
-                            <span className="text-xs text-muted-foreground">
-                              -{bid.discount_pct}%
-                            </span>
-                            {bid.result === "won" ? (
-                              <Badge className="bg-green-100 text-green-700 text-xs">
-                                <Trophy className="h-3 w-3 mr-1" /> Yutildi
-                              </Badge>
-                            ) : bid.result === "lost" ? (
-                              <Badge className="bg-red-100 text-red-700 text-xs">
-                                <XCircle className="h-3 w-3 mr-1" /> Yutqazildi
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-xs">
-                                {bid.stage}
-                              </Badge>
-                            )}
-                          </div>
+                          )}
+                          <span>
+                            Tender: {formatAmount(bid.tender_amount)} UZS
+                          </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      <div className="text-right ml-4">
+                        <p className="font-medium">
+                          {formatAmount(bid.bid_amount)} UZS
+                        </p>
+                        <div className="flex items-center gap-2 justify-end mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            -{bid.discount_pct}%
+                          </span>
+                          {bid.result === "won" ? (
+                            <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-2.5 py-0.5 text-[12px] font-semibold dark:bg-green-900/40 dark:text-green-300">
+                              <Trophy className="h-3 w-3 mr-1" /> Yutildi
+                            </span>
+                          ) : bid.result === "lost" ? (
+                            <span className="inline-flex items-center rounded-full bg-red-100 text-red-700 px-2.5 py-0.5 text-[12px] font-semibold dark:bg-red-900/40 dark:text-red-300">
+                              <XCircle className="h-3 w-3 mr-1" /> Yutqazildi
+                            </span>
+                          ) : (
+                            <span className="rounded-full border border-black/10 bg-white/70 backdrop-blur px-2.5 py-0.5 text-[12px] font-semibold dark:border-white/10 dark:bg-white/5">
+                              {bid.stage}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </TabsContent>

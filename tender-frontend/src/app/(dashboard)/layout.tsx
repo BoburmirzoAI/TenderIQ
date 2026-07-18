@@ -1,12 +1,10 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { AppSidebar } from "@/components/layout/sidebar-nav";
-import { Header } from "@/components/layout/header";
+import { TopNavbar } from "@/components/layout/top-navbar";
 import { useAuthStore } from "@/store/auth";
 import { useNotificationWS } from "@/hooks/use-notification-ws";
 
@@ -28,7 +26,8 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!initialized) return;
-    if (!isAuthenticated) {
+    const token = localStorage.getItem("access_token");
+    if (!isAuthenticated || !token) {
       router.push("/login");
       return;
     }
@@ -45,14 +44,13 @@ export default function DashboardLayout({
   if (!ready) return null;
 
   return (
-    <TooltipProvider>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <Header />
-          <main className="flex-1 overflow-auto p-4 lg:p-6">{children}</main>
-        </SidebarInset>
-      </SidebarProvider>
-    </TooltipProvider>
+    <>
+      <TopNavbar />
+      <main className="min-h-[calc(100vh-64px)] bg-[#f5f5f7] dark:bg-[#020617]">
+        <div className="mx-auto max-w-[1400px] px-6 lg:px-8 py-6">
+          {children}
+        </div>
+      </main>
+    </>
   );
 }

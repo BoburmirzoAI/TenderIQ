@@ -1,17 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -47,7 +38,7 @@ import {
 } from "recharts";
 import {
   BarChart3,
-  TrendingUp,
+
   Users,
   DollarSign,
   Target,
@@ -57,8 +48,8 @@ import {
   Trophy,
   Activity,
   Layers,
-  ArrowUpRight,
-  ArrowDownRight,
+
+
 } from "lucide-react";
 import api from "@/lib/api";
 import { formatAmount, getCategoryLabel, getRegionLabel, formatDate } from "@/lib/format";
@@ -168,8 +159,8 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analitika</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Analitika</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Bozor tahlili, raqobatchilar va tendentsiyalar
           </p>
         </div>
@@ -211,75 +202,67 @@ export default function AnalyticsPage() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="relative">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Jami tenderlar</CardTitle>
-            <Layers className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalTenders}</div>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="secondary" className="text-[10px]">
-                {market?.total_active_tenders ?? 0} faol
-              </Badge>
-              <Badge variant="outline" className="text-[10px]">
-                {market?.total_closed_tenders ?? 0} yopilgan
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg relative">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[16px] font-bold mb-1 text-sm font-medium">Jami tenderlar</h3>
+            <Layers className="h-4 w-4 text-sky-400" />
+          </div>
+          <div className="text-3xl font-bold">{totalTenders}</div>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold text-[10px]">
+              {market?.total_active_tenders ?? 0} faol
+            </span>
+            <span className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold text-[10px]">
+              {market?.total_closed_tenders ?? 0} yopilgan
+            </span>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Raqobatchilar</CardTitle>
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[16px] font-bold mb-1 text-sm font-medium">Raqobatchilar</h3>
             <Users className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {competitors?.total_competitors ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Faol kompaniyalar soni
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-bold">
+            {competitors?.total_competitors ?? 0}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Faol kompaniyalar soni
+          </p>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[16px] font-bold mb-1 text-sm font-medium">
               O&apos;rtacha summa
-            </CardTitle>
+            </h3>
             <DollarSign className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatAmount(competitors?.avg_tender_amount)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Tender uchun o&apos;rtacha
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-2xl font-bold">
+            {formatAmount(competitors?.avg_tender_amount)}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Tender uchun o&apos;rtacha
+          </p>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <h3 className="text-[16px] font-bold mb-1 text-sm font-medium">
               Bozor konsentratsiyasi
-            </CardTitle>
+            </h3>
             <Target className="h-4 w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {competitors?.market_concentration != null
-                ? `${Math.round(competitors.market_concentration * 100)}%`
-                : "—"}
-            </div>
-            <Progress
-              value={(competitors?.market_concentration ?? 0) * 100}
-              className="mt-2"
-            />
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-bold">
+            {competitors?.market_concentration != null
+              ? `${Math.round(competitors.market_concentration * 100)}%`
+              : "—"}
+          </div>
+          <Progress
+            value={(competitors?.market_concentration ?? 0) * 100}
+            className="mt-2"
+          />
+        </div>
       </div>
 
       {/* Tabs for Charts */}
@@ -293,431 +276,400 @@ export default function AnalyticsPage() {
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <BarChart3 className="h-4 w-4" />
-                  Kategoriyalar bo&apos;yicha o&apos;rtacha summa
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {categoryChartData.length > 0 ? (
-                  <ChartContainer
-                    config={{
-                      value: { label: "Summa", color: "var(--chart-1)" },
-                    }}
-                    className="h-[300px]"
-                  >
-                    <BarChart data={categoryChartData}>
-                      <XAxis
-                        dataKey="name"
-                        tick={{ fontSize: 10 }}
-                        angle={-30}
-                        textAnchor="end"
-                        height={60}
-                      />
-                      <YAxis tick={{ fontSize: 10 }} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                        {categoryChartData.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill={CHART_COLORS[i % CHART_COLORS.length]}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                ) : (
-                  <EmptyState />
-                )}
-              </CardContent>
-            </Card>
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <h3 className="text-[16px] font-bold mb-1 flex items-center gap-2 text-base">
+                <BarChart3 className="h-4 w-4" />
+                Kategoriyalar bo&apos;yicha o&apos;rtacha summa
+              </h3>
+              {categoryChartData.length > 0 ? (
+                <ChartContainer
+                  config={{
+                    value: { label: "Summa", color: "var(--chart-1)" },
+                  }}
+                  className="h-[300px]"
+                >
+                  <BarChart data={categoryChartData}>
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 10 }}
+                      angle={-30}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                      {categoryChartData.map((_, i) => (
+                        <Cell
+                          key={i}
+                          fill={CHART_COLORS[i % CHART_COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <EmptyState />
+              )}
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <MapPin className="h-4 w-4" />
-                  Viloyatlar bo&apos;yicha tenderlar
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {regionChartData.length > 0 ? (
-                  <ChartContainer
-                    config={{
-                      count: { label: "Soni", color: "var(--chart-2)" },
-                    }}
-                    className="h-[300px]"
-                  >
-                    <BarChart data={regionChartData} layout="vertical">
-                      <XAxis type="number" tick={{ fontSize: 10 }} />
-                      <YAxis
-                        dataKey="name"
-                        type="category"
-                        width={120}
-                        tick={{ fontSize: 10 }}
-                      />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="count" radius={[0, 6, 6, 0]}>
-                        {regionChartData.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill={CHART_COLORS[i % CHART_COLORS.length]}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                ) : (
-                  <EmptyState />
-                )}
-              </CardContent>
-            </Card>
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <h3 className="text-[16px] font-bold mb-1 flex items-center gap-2 text-base">
+                <MapPin className="h-4 w-4" />
+                Viloyatlar bo&apos;yicha tenderlar
+              </h3>
+              {regionChartData.length > 0 ? (
+                <ChartContainer
+                  config={{
+                    count: { label: "Soni", color: "var(--chart-2)" },
+                  }}
+                  className="h-[300px]"
+                >
+                  <BarChart data={regionChartData} layout="vertical">
+                    <XAxis type="number" tick={{ fontSize: 10 }} />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={120}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                      {regionChartData.map((_, i) => (
+                        <Cell
+                          key={i}
+                          fill={CHART_COLORS[i % CHART_COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <EmptyState />
+              )}
+            </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <PieChart className="h-4 w-4" />
-                  Kategoriya taqsimoti
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {pieData.length > 0 ? (
-                  <ChartContainer
-                    config={{
-                      value: { label: "Summa", color: "var(--chart-1)" },
-                    }}
-                    className="h-[250px]"
-                  >
-                    <RePieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={45}
-                        outerRadius={85}
-                        dataKey="value"
-                        nameKey="name"
-                      >
-                        {pieData.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill={CHART_COLORS[i % CHART_COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                    </RePieChart>
-                  </ChartContainer>
-                ) : (
-                  <EmptyState />
-                )}
-              </CardContent>
-            </Card>
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <h3 className="text-[16px] font-bold mb-1 text-base flex items-center gap-2">
+                <PieChart className="h-4 w-4" />
+                Kategoriya taqsimoti
+              </h3>
+              {pieData.length > 0 ? (
+                <ChartContainer
+                  config={{
+                    value: { label: "Summa", color: "var(--chart-1)" },
+                  }}
+                  className="h-[250px]"
+                >
+                  <RePieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={85}
+                      dataKey="value"
+                      nameKey="name"
+                    >
+                      {pieData.map((_, i) => (
+                        <Cell
+                          key={i}
+                          fill={CHART_COLORS[i % CHART_COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                  </RePieChart>
+                </ChartContainer>
+              ) : (
+                <EmptyState />
+              )}
+            </div>
 
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-base">
-                  Top tashkilotlar
-                </CardTitle>
-                <CardDescription>Eng faol tender e&apos;lon qiluvchilar</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {market?.top_organizations &&
-                market.top_organizations.length > 0 ? (
-                  <div className="space-y-2">
-                    {market.top_organizations.slice(0, 8).map((org, i) => {
-                      const maxCount = Math.max(
-                        ...market.top_organizations.map((o) =>
-                          Number(o.count ?? o.total ?? 1)
-                        )
-                      );
-                      const count = Number(org.count ?? org.total ?? 0);
-                      const pct = Math.round((count / maxCount) * 100);
-                      return (
-                        <div key={i} className="space-y-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="truncate flex-1">
-                              <span className="font-medium text-muted-foreground mr-2">
-                                {i + 1}.
-                              </span>
-                              {String(org.name ?? org.organization ?? "Noma'lum")}
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg lg:col-span-2">
+              <h3 className="text-[16px] font-bold mb-1 text-base">
+                Top tashkilotlar
+              </h3>
+              <p className="text-[13px] text-muted-foreground mb-4">Eng faol tender e&apos;lon qiluvchilar</p>
+              {market?.top_organizations &&
+              market.top_organizations.length > 0 ? (
+                <div className="space-y-2">
+                  {market.top_organizations.slice(0, 8).map((org, i) => {
+                    const maxCount = Math.max(
+                      ...market.top_organizations.map((o) =>
+                        Number(o.count ?? o.total ?? 1)
+                      )
+                    );
+                    const count = Number(org.count ?? org.total ?? 0);
+                    const pct = Math.round((count / maxCount) * 100);
+                    return (
+                      <div key={i} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="truncate flex-1">
+                            <span className="font-medium text-muted-foreground mr-2">
+                              {i + 1}.
                             </span>
-                            <Badge variant="secondary" className="ml-2">
-                              {count}
-                            </Badge>
-                          </div>
-                          <Progress value={pct} className="h-1.5" />
+                            {String(org.name ?? org.organization ?? "Noma'lum")}
+                          </span>
+                          <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold ml-2">
+                            {count}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <EmptyState />
-                )}
-              </CardContent>
-            </Card>
+                        <Progress value={pct} className="h-1.5" />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EmptyState />
+              )}
+            </div>
           </div>
         </TabsContent>
 
         <TabsContent value="competitors">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-amber-500" />
-                Top raqobatchilar
-              </CardTitle>
-              <CardDescription>
-                Eng faol va muvaffaqiyatli kompaniyalar
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {competitors?.top_competitors &&
-              competitors.top_competitors.length > 0 ? (
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <h3 className="text-[16px] font-bold mb-1 flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              Top raqobatchilar
+            </h3>
+            <p className="text-[13px] text-muted-foreground mb-4">
+              Eng faol va muvaffaqiyatli kompaniyalar
+            </p>
+            {competitors?.top_competitors &&
+            competitors.top_competitors.length > 0 ? (
+              <div className="overflow-x-auto"><Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>Kompaniya</TableHead>
+                    <TableHead className="text-center">G&apos;alabalar</TableHead>
+                    <TableHead className="text-right">Jami summa</TableHead>
+                    <TableHead className="text-right">O&apos;rtacha</TableHead>
+                    <TableHead>Kategoriyalar</TableHead>
+                    <TableHead>Viloyatlar</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {competitors.top_competitors.map((comp, i) => (
+                    <TableRow key={comp.name}>
+                      <TableCell>
+                        <div
+                          className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                            i === 0
+                              ? "bg-amber-500/20 text-amber-600"
+                              : i === 1
+                              ? "bg-slate-300/30 text-slate-600"
+                              : i === 2
+                              ? "bg-orange-400/20 text-orange-600"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {i + 1}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{comp.name}</p>
+                          {comp.stir && (
+                            <p className="text-xs text-muted-foreground">
+                              STIR: {comp.stir}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold">{comp.total_wins}</span>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatAmount(comp.total_amount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatAmount(comp.avg_winning_amount)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {comp.categories.slice(0, 3).map((cat) => (
+                            <span
+                              key={cat}
+                              className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold text-[10px]"
+                            >
+                              {getCategoryLabel(cat)}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {comp.regions.slice(0, 2).map((reg) => (
+                            <span
+                              key={reg}
+                              className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold text-[10px]"
+                            >
+                              {getRegionLabel(reg)}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table></div>
+            ) : (
+              <EmptyState text="Raqobatchilar haqida ma'lumot mavjud emas" />
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="prices">
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <h3 className="text-[16px] font-bold mb-1 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-green-500" />
+              Narxlar tarixi
+            </h3>
+            <p className="text-[13px] text-muted-foreground mb-4">
+              G&apos;olib bo&apos;lgan tenderlarning narx dinamikasi
+            </p>
+            {priceChartData.length > 0 ? (
+              <ChartContainer
+                config={{
+                  amount: { label: "Summa (UZS)", color: "var(--chart-1)" },
+                }}
+                className="h-[400px]"
+              >
+                <AreaChart data={priceChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Area
+                    type="monotone"
+                    dataKey="amount"
+                    stroke="var(--chart-1)"
+                    fill="var(--chart-1)"
+                    fillOpacity={0.15}
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ChartContainer>
+            ) : (
+              <EmptyState text="Narx tarixi ma'lumotlari mavjud emas" />
+            )}
+
+            {priceHistory.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-sm font-medium mb-3">
+                  So&apos;nggi g&apos;oliblar
+                </h4>
                 <div className="overflow-x-auto"><Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-12">#</TableHead>
-                      <TableHead>Kompaniya</TableHead>
-                      <TableHead className="text-center">G&apos;alabalar</TableHead>
-                      <TableHead className="text-right">Jami summa</TableHead>
-                      <TableHead className="text-right">O&apos;rtacha</TableHead>
-                      <TableHead>Kategoriyalar</TableHead>
-                      <TableHead>Viloyatlar</TableHead>
+                      <TableHead>Sana</TableHead>
+                      <TableHead>Kategoriya</TableHead>
+                      <TableHead>Viloyat</TableHead>
+                      <TableHead>G&apos;olib</TableHead>
+                      <TableHead className="text-right">Summa</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {competitors.top_competitors.map((comp, i) => (
-                      <TableRow key={comp.name}>
-                        <TableCell>
-                          <div
-                            className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
-                              i === 0
-                                ? "bg-amber-500/20 text-amber-600"
-                                : i === 1
-                                ? "bg-slate-300/30 text-slate-600"
-                                : i === 2
-                                ? "bg-orange-400/20 text-orange-600"
-                                : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {i + 1}
-                          </div>
+                    {priceHistory.slice(0, 10).map((p, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="text-sm">
+                          {formatDate(p.date)}
                         </TableCell>
                         <TableCell>
-                          <div>
-                            <p className="font-medium">{comp.name}</p>
-                            {comp.stir && (
-                              <p className="text-xs text-muted-foreground">
-                                STIR: {comp.stir}
-                              </p>
-                            )}
-                          </div>
+                          <span className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold text-xs">
+                            {getCategoryLabel(p.category)}
+                          </span>
                         </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="secondary">{comp.total_wins}</Badge>
+                        <TableCell className="text-sm">
+                          {getRegionLabel(p.region)}
+                        </TableCell>
+                        <TableCell className="text-sm font-medium">
+                          {p.winner ?? "—"}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatAmount(comp.total_amount)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatAmount(comp.avg_winning_amount)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {comp.categories.slice(0, 3).map((cat) => (
-                              <Badge
-                                key={cat}
-                                variant="outline"
-                                className="text-[10px]"
-                              >
-                                {getCategoryLabel(cat)}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {comp.regions.slice(0, 2).map((reg) => (
-                              <Badge
-                                key={reg}
-                                variant="outline"
-                                className="text-[10px]"
-                              >
-                                {getRegionLabel(reg)}
-                              </Badge>
-                            ))}
-                          </div>
+                          {formatAmount(p.amount)}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table></div>
-              ) : (
-                <EmptyState text="Raqobatchilar haqida ma'lumot mavjud emas" />
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="prices">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-green-500" />
-                Narxlar tarixi
-              </CardTitle>
-              <CardDescription>
-                G&apos;olib bo&apos;lgan tenderlarning narx dinamikasi
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {priceChartData.length > 0 ? (
-                <ChartContainer
-                  config={{
-                    amount: { label: "Summa (UZS)", color: "var(--chart-1)" },
-                  }}
-                  className="h-[400px]"
-                >
-                  <AreaChart data={priceChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Area
-                      type="monotone"
-                      dataKey="amount"
-                      stroke="var(--chart-1)"
-                      fill="var(--chart-1)"
-                      fillOpacity={0.15}
-                      strokeWidth={2}
-                    />
-                  </AreaChart>
-                </ChartContainer>
-              ) : (
-                <EmptyState text="Narx tarixi ma'lumotlari mavjud emas" />
-              )}
-
-              {priceHistory.length > 0 && (
-                <div className="mt-6">
-                  <h4 className="text-sm font-medium mb-3">
-                    So&apos;nggi g&apos;oliblar
-                  </h4>
-                  <div className="overflow-x-auto"><Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Sana</TableHead>
-                        <TableHead>Kategoriya</TableHead>
-                        <TableHead>Viloyat</TableHead>
-                        <TableHead>G&apos;olib</TableHead>
-                        <TableHead className="text-right">Summa</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {priceHistory.slice(0, 10).map((p, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="text-sm">
-                            {formatDate(p.date)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {getCategoryLabel(p.category)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {getRegionLabel(p.region)}
-                          </TableCell>
-                          <TableCell className="text-sm font-medium">
-                            {p.winner ?? "—"}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {formatAmount(p.amount)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table></div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="anomalies">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-                Anomaliyalar va shubhali patternlar
-              </CardTitle>
-              <CardDescription>
-                AI orqali aniqlangan g&apos;ayrioddiy holatlar
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {anomalies.length > 0 ? (
-                <div className="space-y-3">
-                  {anomalies.map((anomaly, i) => (
-                    <div
-                      key={i}
-                      className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/30"
-                    >
-                      <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">
-                          {String(
-                            anomaly.title ??
-                              anomaly.description ??
-                              anomaly.type ??
-                              "Anomaliya aniqlandi"
-                          )}
-                        </p>
-                        {anomaly.details && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {String(anomaly.details)}
-                          </p>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <h3 className="text-[16px] font-bold mb-1 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Anomaliyalar va shubhali patternlar
+            </h3>
+            <p className="text-[13px] text-muted-foreground mb-4">
+              AI orqali aniqlangan g&apos;ayrioddiy holatlar
+            </p>
+            {anomalies.length > 0 ? (
+              <div className="space-y-3">
+                {anomalies.map((anomaly, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/30"
+                  >
+                    <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">
+                        {String(
+                          anomaly.title ??
+                            anomaly.description ??
+                            anomaly.type ??
+                            "Anomaliya aniqlandi"
                         )}
-                        <div className="flex items-center gap-2 mt-2">
-                          {anomaly.category && (
-                            <Badge variant="outline" className="text-[10px]">
-                              {getCategoryLabel(String(anomaly.category))}
-                            </Badge>
-                          )}
-                          {anomaly.region && (
-                            <Badge variant="outline" className="text-[10px]">
-                              {getRegionLabel(String(anomaly.region))}
-                            </Badge>
-                          )}
-                          {anomaly.severity && (
-                            <Badge
-                              variant={
-                                anomaly.severity === "high"
-                                  ? "destructive"
-                                  : "secondary"
-                              }
-                              className="text-[10px]"
-                            >
-                              {String(anomaly.severity)}
-                            </Badge>
-                          )}
-                        </div>
+                      </p>
+                      {anomaly.details && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {String(anomaly.details)}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        {anomaly.category && (
+                          <span className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold text-[10px]">
+                            {getCategoryLabel(String(anomaly.category))}
+                          </span>
+                        )}
+                        {anomaly.region && (
+                          <span className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold text-[10px]">
+                            {getRegionLabel(String(anomaly.region))}
+                          </span>
+                        )}
+                        {anomaly.severity && (
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold text-[10px] ${
+                              anomaly.severity === "high"
+                                ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                : "bg-black/[0.04] dark:bg-white/[0.06]"
+                            }`}
+                          >
+                            {String(anomaly.severity)}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <AlertTriangle className="h-12 w-12 mb-3 opacity-30" />
-                  <p className="font-medium">Anomaliyalar topilmadi</p>
-                  <p className="text-sm">
-                    Yetarli ma&apos;lumot yig&apos;ilganda AI tahlil qiladi
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <AlertTriangle className="h-12 w-12 mb-3 opacity-30" />
+                <p className="font-medium">Anomaliyalar topilmadi</p>
+                <p className="text-sm">
+                  Yetarli ma&apos;lumot yig&apos;ilganda AI tahlil qiladi
+                </p>
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

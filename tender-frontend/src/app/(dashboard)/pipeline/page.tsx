@@ -1,16 +1,17 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Kanban,
   Plus,
-  GripVertical,
+
   Trash2,
   ChevronRight,
   ChevronLeft,
   Trophy,
-  XCircle,
+
   Clock,
   AlertTriangle,
   TrendingUp,
@@ -19,16 +20,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,7 +36,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+
   DialogFooter,
 } from "@/components/ui/dialog";
 import api from "@/lib/api";
@@ -68,7 +59,7 @@ const STAGES = [
     key: "analyzing",
     label: "Tahlil qilinmoqda",
     icon: "📊",
-    color: "bg-blue-50 border-blue-300",
+    color: "bg-sky-50 border-sky-300",
   },
   {
     key: "preparing",
@@ -232,98 +223,92 @@ export default function PipelinePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-[32px] font-extrabold tracking-[-0.03em] flex items-center gap-2">
             <Kanban className="h-6 w-6" />
             Ariza pipeline
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-1">
             Tender arizalarini bosqichma-bosqich kuzating
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant={viewMode === "kanban" ? "default" : "outline"}
-            size="sm"
+          <button
+            className={viewMode === "kanban"
+              ? "rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f]"
+              : "rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+            }
             onClick={() => setViewMode("kanban")}
           >
             Kanban
-          </Button>
-          <Button
-            variant={viewMode === "list" ? "default" : "outline"}
-            size="sm"
+          </button>
+          <button
+            className={viewMode === "list"
+              ? "rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f]"
+              : "rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+            }
             onClick={() => setViewMode("list")}
           >
             Ro&apos;yxat
-          </Button>
+          </button>
         </div>
       </div>
 
       {/* Stats */}
       {stats && (
         <div className="grid gap-4 md:grid-cols-5">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Jami arizalar</CardTitle>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="flex flex-row items-center justify-between pb-2">
+              <h3 className="text-[16px] font-bold mb-1 text-sm">Jami arizalar</h3>
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Yutilgan</CardTitle>
+            </div>
+            <div className="text-2xl font-bold">{stats.total}</div>
+          </div>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="flex flex-row items-center justify-between pb-2">
+              <h3 className="text-[16px] font-bold mb-1 text-sm">Yutilgan</h3>
               <Trophy className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {stats.won_count}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
+            </div>
+            <div className="text-2xl font-bold text-green-600">
+              {stats.won_count}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="flex flex-row items-center justify-between pb-2">
+              <h3 className="text-[16px] font-bold mb-1 text-sm">
                 Yutish foizi
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.win_rate != null ? `${stats.win_rate}%` : "—"}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Jami bid</CardTitle>
+              </h3>
+              <TrendingUp className="h-4 w-4 text-sky-400" />
+            </div>
+            <div className="text-2xl font-bold">
+              {stats.win_rate != null ? `${stats.win_rate}%` : "—"}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="flex flex-row items-center justify-between pb-2">
+              <h3 className="text-[16px] font-bold mb-1 text-sm">Jami bid</h3>
               <Clock className="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatAmount(stats.total_bid_amount)}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">O&apos;rtacha bid</CardTitle>
+            </div>
+            <div className="text-2xl font-bold">
+              {formatAmount(stats.total_bid_amount)}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="flex flex-row items-center justify-between pb-2">
+              <h3 className="text-[16px] font-bold mb-1 text-sm">O&apos;rtacha bid</h3>
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.avg_bid_amount
-                  ? formatAmount(stats.avg_bid_amount)
-                  : "—"}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="text-2xl font-bold">
+              {stats.avg_bid_amount
+                ? formatAmount(stats.avg_bid_amount)
+                : "—"}
+            </div>
+          </div>
         </div>
       )}
 
       {apps.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="flex flex-col items-center justify-center py-16">
             <Kanban className="h-16 w-16 text-muted-foreground/30 mb-4" />
             <h3 className="text-lg font-medium mb-1">
               Pipeline bo&apos;sh
@@ -332,13 +317,13 @@ export default function PipelinePage() {
               Tender sahifasidan tender tanlang va pipeline&apos;ga qo&apos;shing
             </p>
             <Link href="/tenders">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
+              <button className="rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f]">
+                <Plus className="mr-2 h-4 w-4 inline" />
                 Tenderlarni ko&apos;rish
-              </Button>
+              </button>
             </Link>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : viewMode === "kanban" ? (
         /* Kanban View */
         <div className="flex gap-4 overflow-x-auto pb-4">
@@ -355,9 +340,9 @@ export default function PipelinePage() {
                       <span>{stage.icon}</span>
                       {stage.label}
                     </h3>
-                    <Badge variant="secondary" className="text-xs">
+                    <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold">
                       {stageApps.length}
-                    </Badge>
+                    </span>
                   </div>
                 </div>
                 <div className="p-2 space-y-2 min-h-[120px] max-h-[60vh] overflow-y-auto">
@@ -378,12 +363,9 @@ export default function PipelinePage() {
                           >
                             {app.tender_title ?? `Tender #${app.tender_id}`}
                           </Link>
-                          <Badge
-                            variant={pBadge.color}
-                            className="text-[10px] shrink-0"
-                          >
+                          <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold text-[10px] shrink-0">
                             {pBadge.label}
-                          </Badge>
+                          </span>
                         </div>
 
                         <div className="text-xs text-muted-foreground space-y-0.5 mb-2">
@@ -422,42 +404,34 @@ export default function PipelinePage() {
 
                         <div className="flex items-center justify-between pt-1 border-t">
                           <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
+                            <button
+                              className="h-6 w-6 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10 inline-flex items-center justify-center disabled:opacity-50"
                               disabled={stageIdx <= 0}
                               onClick={() => moveStage(app, -1)}
                             >
                               <ChevronLeft className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
+                            </button>
+                            <button
+                              className="h-6 w-6 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10 inline-flex items-center justify-center disabled:opacity-50"
                               disabled={stageIdx >= STAGES.length - 1}
                               onClick={() => moveStage(app, 1)}
                             >
                               <ChevronRight className="h-3 w-3" />
-                            </Button>
+                            </button>
                           </div>
                           <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
+                            <button
+                              className="h-6 w-6 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10 inline-flex items-center justify-center"
                               onClick={() => openEdit(app)}
                             >
                               <Edit3 className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-destructive"
+                            </button>
+                            <button
+                              className="h-6 w-6 rounded-lg transition-all hover:bg-red-50 dark:hover:bg-red-900/20 text-destructive inline-flex items-center justify-center"
                               onClick={() => deleteApp(app.id)}
                             >
                               <Trash2 className="h-3 w-3" />
-                            </Button>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -470,8 +444,8 @@ export default function PipelinePage() {
         </div>
       ) : (
         /* List View */
-        <Card>
-          <CardContent className="p-0">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -506,14 +480,14 @@ export default function PipelinePage() {
                           </p>
                         </td>
                         <td className="p-3">
-                          <Badge variant="outline" className="text-xs">
+                          <span className="rounded-full border border-black/10 dark:border-white/10 px-2.5 py-0.5 text-[12px] font-semibold">
                             {stageDef?.icon} {stageDef?.label ?? app.stage}
-                          </Badge>
+                          </span>
                         </td>
                         <td className="p-3">
-                          <Badge variant={pBadge.color} className="text-xs">
+                          <span className="rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-0.5 text-[12px] font-semibold">
                             {pBadge.label}
-                          </Badge>
+                          </span>
                         </td>
                         <td className="p-3 text-right font-medium">
                           {app.bid_amount
@@ -528,40 +502,32 @@ export default function PipelinePage() {
                         </td>
                         <td className="p-3">
                           <div className="flex items-center justify-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
+                            <button
+                              className="h-7 w-7 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10 inline-flex items-center justify-center disabled:opacity-50"
                               disabled={stageIdx <= 0}
                               onClick={() => moveStage(app, -1)}
                             >
                               <ChevronLeft className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
+                            </button>
+                            <button
+                              className="h-7 w-7 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10 inline-flex items-center justify-center disabled:opacity-50"
                               disabled={stageIdx >= STAGES.length - 1}
                               onClick={() => moveStage(app, 1)}
                             >
                               <ChevronRight className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
+                            </button>
+                            <button
+                              className="h-7 w-7 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10 inline-flex items-center justify-center"
                               onClick={() => openEdit(app)}
                             >
                               <Edit3 className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive"
+                            </button>
+                            <button
+                              className="h-7 w-7 rounded-lg transition-all hover:bg-red-50 dark:hover:bg-red-900/20 text-destructive inline-flex items-center justify-center"
                               onClick={() => deleteApp(app.id)}
                             >
                               <Trash2 className="h-3 w-3" />
-                            </Button>
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -570,8 +536,8 @@ export default function PipelinePage() {
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Edit Dialog */}
@@ -587,7 +553,7 @@ export default function PipelinePage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label>Muhimlik</Label>
               <Select
                 value={editPriority}
@@ -605,24 +571,26 @@ export default function PipelinePage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label>Bid summasi (UZS)</Label>
-              <Input
+              <input
                 type="number"
+                className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                 value={editBid}
                 onChange={(e) => setEditBid(e.target.value)}
                 placeholder="Tender uchun taklif summasi"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label>Mas&apos;ul shaxs</Label>
-              <Input
+              <input
+                className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                 value={editAssigned}
                 onChange={(e) => setEditAssigned(e.target.value)}
                 placeholder="Kim javobgar?"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label>Izoh</Label>
               <Textarea
                 value={editNotes}
@@ -633,19 +601,19 @@ export default function PipelinePage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingApp(null)}>
+            <button className="rounded-xl border border-black/10 bg-white/70 backdrop-blur px-4 py-2.5 text-[13px] font-semibold transition-all hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5" onClick={() => setEditingApp(null)}>
               Bekor qilish
-            </Button>
-            <Button onClick={saveEdit} disabled={saving}>
+            </button>
+            <button className="rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] disabled:opacity-50" onClick={saveEdit} disabled={saving}>
               {saving ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
                   Saqlanmoqda...
                 </>
               ) : (
                 "Saqlash"
               )}
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

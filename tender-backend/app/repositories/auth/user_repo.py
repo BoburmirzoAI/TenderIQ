@@ -58,3 +58,32 @@ class UserRepository(BaseRepository[User]):
         """Check if email is already registered."""
         user = await self.get_by_email(email)
         return user is not None
+
+    async def get_by_inn(self, inn: str) -> Optional[User]:
+        """Find user by INN."""
+        result = await self.session.execute(select(User).where(User.inn == inn))
+        return result.scalar_one_or_none()
+
+    async def inn_exists(self, inn: str) -> bool:
+        """Check if INN is already registered."""
+        user = await self.get_by_inn(inn)
+        return user is not None
+
+    async def get_by_eri_key(self, eri_key_serial: str) -> Optional[User]:
+        """Find user by ERI key serial number."""
+        result = await self.session.execute(
+            select(User).where(User.eri_key_serial == eri_key_serial)
+        )
+        return result.scalar_one_or_none()
+
+    async def eri_key_exists(self, eri_key_serial: str) -> bool:
+        """Check if ERI key is already registered."""
+        user = await self.get_by_eri_key(eri_key_serial)
+        return user is not None
+
+    async def get_by_usb_token(self, usb_token_id: str) -> Optional[User]:
+        """Find user by USB token ID."""
+        result = await self.session.execute(
+            select(User).where(User.usb_token_id == usb_token_id)
+        )
+        return result.scalar_one_or_none()

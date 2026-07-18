@@ -1,13 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Star, Search, Filter, Building2, Trophy, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Star, Building2, Trophy, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
 
 interface Rating {
@@ -28,13 +23,23 @@ interface Rating {
 interface RatingStats { total_rated: number; by_grade: Record<string, number>; by_category: Record<string, number>; }
 
 const gradeColors: Record<string, string> = {
-  A: "bg-green-100 text-green-700 border-green-200",
-  BBB: "bg-blue-100 text-blue-700 border-blue-200",
-  BB: "bg-cyan-100 text-cyan-700 border-cyan-200",
-  B: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  CCC: "bg-orange-100 text-orange-700 border-orange-200",
-  CC: "bg-red-100 text-red-700 border-red-200",
-  D: "bg-slate-100 text-slate-700 border-slate-200",
+  A: "bg-green-500/10 text-green-600 dark:text-green-400",
+  BBB: "bg-sky-400/10 text-sky-500 dark:text-sky-400",
+  BB: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
+  B: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
+  CCC: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+  CC: "bg-red-500/10 text-red-600 dark:text-red-400",
+  D: "bg-slate-500/10 text-slate-600 dark:text-slate-400",
+};
+
+const gradeDotColors: Record<string, string> = {
+  A: "bg-green-500",
+  BBB: "bg-sky-400",
+  BB: "bg-cyan-500",
+  B: "bg-yellow-500",
+  CCC: "bg-orange-500",
+  CC: "bg-red-500",
+  D: "bg-slate-500",
 };
 
 export default function RatingsPage() {
@@ -58,7 +63,7 @@ export default function RatingsPage() {
 
   const filterByCategory = async (cat: string) => {
     setCategory(cat);
-    const params: any = {};
+    const params: Record<string, string> = {};
     if (cat) params.category = cat;
     const r = await api.get("/v1/ratings", { params });
     setRatings(r.data.data);
@@ -67,106 +72,124 @@ export default function RatingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Tashkilotlar reytingi</h1>
-        <p className="text-muted-foreground">Kompaniyalar reytingi ball va kategoriya bo'yicha</p>
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em]">Tashkilotlar reytingi</h1>
+        <p className="text-[14px] text-muted-foreground mt-1">Kompaniyalar reytingi ball va kategoriya bo&apos;yicha</p>
       </div>
 
       {stats && (
         <div className="grid gap-4 sm:grid-cols-3">
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                <Building2 className="h-5 w-5" />
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.01]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400/10 to-sky-500/20 dark:from-sky-400/20 dark:to-sky-400/30">
+                <Building2 className="h-5 w-5 text-sky-500 dark:text-sky-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.total_rated}</p>
-                <p className="text-xs text-muted-foreground">Jami baholangan</p>
+                <p className="text-2xl font-bold tracking-tight">{stats.total_rated}</p>
+                <p className="text-[12px] text-muted-foreground">Jami baholangan</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-green-600">
-                <Trophy className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.by_grade?.A || 0}</p>
-                <p className="text-xs text-muted-foreground">"A" reytingli</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
-                <TrendingUp className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.01]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500/10 to-green-600/20 dark:from-green-400/20 dark:to-green-500/30">
+                <Trophy className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{Object.keys(stats.by_category).length}</p>
-                <p className="text-xs text-muted-foreground">Kategoriya</p>
+                <p className="text-2xl font-bold tracking-tight">{stats.by_grade?.A || 0}</p>
+                <p className="text-[12px] text-muted-foreground">&quot;A&quot; reytingli</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-5 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg hover:scale-[1.01]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-600/20 dark:from-purple-400/20 dark:to-purple-500/30">
+                <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-tight">{Object.keys(stats.by_category).length}</p>
+                <p className="text-[12px] text-muted-foreground">Kategoriya</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Badge variant={!category ? "default" : "outline"} className="cursor-pointer" onClick={() => filterByCategory("")}>
+        <button
+          className={`rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-all active:scale-[0.97] ${
+            !category
+              ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] shadow-sm"
+              : "border border-black/10 bg-white/70 backdrop-blur hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+          }`}
+          onClick={() => filterByCategory("")}
+        >
           Barchasi
-        </Badge>
+        </button>
         {categories.map((c) => (
-          <Badge key={c.name} variant={category === c.name ? "default" : "outline"} className="cursor-pointer" onClick={() => filterByCategory(c.name)}>
+          <button
+            key={c.name}
+            className={`rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-all active:scale-[0.97] ${
+              category === c.name
+                ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] shadow-sm"
+                : "border border-black/10 bg-white/70 backdrop-blur hover:bg-white hover:shadow-sm dark:border-white/10 dark:bg-white/5"
+            }`}
+            onClick={() => filterByCategory(c.name)}
+          >
             {c.name} ({c.count})
-          </Badge>
+          </button>
         ))}
       </div>
 
       {loading ? (
         <div className="space-y-3">{[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-16" />)}</div>
       ) : ratings.length === 0 ? (
-        <Card className="py-16 text-center">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl py-16 text-center dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08]">
           <Star className="mx-auto h-12 w-12 text-muted-foreground/40" />
           <p className="mt-4 text-muted-foreground">Reytinglar topilmadi</p>
-        </Card>
+        </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl overflow-hidden dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium">#</th>
-                  <th className="px-4 py-3 text-left font-medium">Tashkilot</th>
-                  <th className="px-4 py-3 text-left font-medium">Kategoriya</th>
-                  <th className="px-4 py-3 text-left font-medium">Hudud</th>
-                  <th className="px-4 py-3 text-center font-medium">Reyting</th>
-                  <th className="px-4 py-3 text-center font-medium">Ball</th>
-                  <th className="px-4 py-3 text-center font-medium">G'alabalar</th>
+                <tr className="border-b border-black/5 dark:border-white/5 bg-white/40 dark:bg-white/[0.02]">
+                  <th className="px-4 py-3 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">#</th>
+                  <th className="px-4 py-3 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Tashkilot</th>
+                  <th className="px-4 py-3 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Kategoriya</th>
+                  <th className="px-4 py-3 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Hudud</th>
+                  <th className="px-4 py-3 text-center text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Reyting</th>
+                  <th className="px-4 py-3 text-center text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Ball</th>
+                  <th className="px-4 py-3 text-center text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">G&apos;alabalar</th>
                 </tr>
               </thead>
               <tbody>
                 {ratings.map((r, i) => (
-                  <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 font-medium text-muted-foreground">{i + 1}</td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{r.company_name || "Noma'lum"}</p>
-                      {r.stir && <p className="text-xs text-muted-foreground">STIR: {r.stir}</p>}
+                  <tr key={r.id} className="border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-white/50 dark:hover:bg-white/[0.03] transition-colors">
+                    <td className="px-4 py-3.5 font-medium text-muted-foreground text-[13px]">{i + 1}</td>
+                    <td className="px-4 py-3.5">
+                      <p className="font-semibold text-[13px]">{r.company_name || "Noma'lum"}</p>
+                      {r.stir && <p className="text-[11px] text-muted-foreground mt-0.5">STIR: {r.stir}</p>}
                     </td>
-                    <td className="px-4 py-3">{r.category}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{r.region || "—"}</td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge className={gradeColors[r.grade] || gradeColors.D}>{r.grade}</Badge>
+                    <td className="px-4 py-3.5 text-[13px]">{r.category}</td>
+                    <td className="px-4 py-3.5 text-[13px] text-muted-foreground">{r.region || "—"}</td>
+                    <td className="px-4 py-3.5 text-center">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${gradeColors[r.grade] || gradeColors.D}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${gradeDotColors[r.grade] || gradeDotColors.D}`} />
+                        {r.grade}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-center font-medium">{r.score.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="text-green-600">{r.wins}</span>
-                      <span className="text-muted-foreground"> / </span>
-                      <span className="text-red-500">{r.losses}</span>
+                    <td className="px-4 py-3.5 text-center font-semibold text-[13px]">{r.score.toFixed(1)}</td>
+                    <td className="px-4 py-3.5 text-center text-[13px]">
+                      <span className="text-green-600 dark:text-green-400 font-semibold">{r.wins}</span>
+                      <span className="text-muted-foreground mx-1">/</span>
+                      <span className="text-red-500 dark:text-red-400 font-semibold">{r.losses}</span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Brain,
   TrendingUp,
   Trophy,
   Info,
   Loader2,
-  Activity,
+
   Shield,
   AlertTriangle,
   CheckCircle2,
@@ -20,17 +20,7 @@ import {
   GitCompareArrows,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -45,18 +35,18 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Bar,
-  BarChart,
+
   Line,
-  LineChart,
+
   XAxis,
   YAxis,
   CartesianGrid,
-  Legend,
-  ResponsiveContainer,
+
+
   Area,
   AreaChart,
   ComposedChart,
-  ReferenceLine,
+
 } from "recharts";
 import {
   ChartContainer,
@@ -66,18 +56,8 @@ import {
 import api from "@/lib/api";
 import { formatAmount } from "@/lib/format";
 import { CATEGORIES, REGIONS } from "@/types";
-import type { PricePredictResponse, WinProbabilityResponse, OptimalBidResponse, RiskAssessmentResponse, TenderSimilarityResponse, TrendForecastResponse } from "@/types";
+import type { WinProbabilityResponse, OptimalBidResponse, RiskAssessmentResponse, TenderSimilarityResponse, TrendForecastResponse } from "@/types";
 
-interface ModelInfo {
-  model_version: string;
-  algorithm: string;
-  training_date: string;
-  accuracy: number;
-  total_training_samples: number;
-  features: string[];
-  categories_supported: string[];
-  regions_supported: string[];
-}
 
 const riskColors: Record<string, string> = {
   past: "text-green-600 dark:text-green-400",
@@ -306,11 +286,11 @@ export default function MLPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-[32px] font-extrabold tracking-[-0.03em] flex items-center gap-2">
           <Brain className="h-6 w-6" />
           AI tahlil markazi
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-[14px] text-muted-foreground mt-1">
           Sun&apos;iy intellekt yordamida tenderlarni tahlil qiling
         </p>
       </div>
@@ -342,17 +322,17 @@ export default function MLPage() {
         {/* ===== WIN PROBABILITY TAB ===== */}
         <TabsContent value="win-probability" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <div className="lg:col-span-2 rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="mb-4">
+                <h3 className="text-[17px] font-semibold tracking-[-0.02em] flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-primary" />
                   G&apos;alaba ehtimolini hisoblash
-                </CardTitle>
-                <CardDescription>
+                </h3>
+                <p className="text-[14px] text-muted-foreground mt-1">
                   Tender va kompaniya ma&apos;lumotlarini kiriting — AI g&apos;alaba ehtimolini bashorat qiladi
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
+                </p>
+              </div>
+              <div className="space-y-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>
@@ -393,20 +373,22 @@ export default function MLPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Tender summasi (UZS)</Label>
-                    <Input
+                    <input
                       type="number"
                       placeholder="100 000 000"
                       value={wpTenderAmount}
                       onChange={(e) => setWpTenderAmount(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Sizning taklif narxingiz (UZS)</Label>
-                    <Input
+                    <input
                       type="number"
                       placeholder="90 000 000"
                       value={wpBidAmount}
                       onChange={(e) => setWpBidAmount(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     />
                   </div>
                 </div>
@@ -414,29 +396,32 @@ export default function MLPage() {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Kompaniya tajribasi (yil)</Label>
-                    <Input
+                    <input
                       type="number"
                       placeholder="3"
                       value={wpExperience}
                       onChange={(e) => setWpExperience(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Raqobatchilar soni</Label>
-                    <Input
+                    <input
                       type="number"
                       placeholder="5"
                       value={wpCompetitors}
                       onChange={(e) => setWpCompetitors(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Muddatgacha (kun)</Label>
-                    <Input
+                    <input
                       type="number"
                       placeholder="14"
                       value={wpDaysLeft}
                       onChange={(e) => setWpDaysLeft(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     />
                   </div>
                 </div>
@@ -444,11 +429,12 @@ export default function MLPage() {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Sohada oldingi g&apos;alabalar</Label>
-                    <Input
+                    <input
                       type="number"
                       placeholder="0"
                       value={wpPastWins}
                       onChange={(e) => setWpPastWins(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     />
                   </div>
                   <div className="flex items-center gap-3 pt-6">
@@ -467,36 +453,37 @@ export default function MLPage() {
                   </div>
                 </div>
 
-                <Button
+                <button
                   onClick={handleWinPredict}
                   disabled={wpPredicting || !wpCategory || !wpRegion}
-                  className="w-full"
-                  size="lg"
+                  className={`w-full rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] flex items-center justify-center gap-2 ${
+                    wpPredicting || !wpCategory || !wpRegion ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
                   {wpPredicting ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Hisoblanmoqda...
                     </>
                   ) : (
                     <>
-                      <Trophy className="mr-2 h-4 w-4" />
+                      <Trophy className="h-4 w-4" />
                       G&apos;alaba ehtimolini hisoblash
                     </>
                   )}
-                </Button>
-              </CardContent>
-            </Card>
+                </button>
+              </div>
+            </div>
 
             {/* Side info card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold tracking-[-0.02em] flex items-center gap-2">
                   <Info className="h-4 w-4" />
                   Qanday ishlaydi?
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm text-muted-foreground">
+                </h3>
+              </div>
+              <div className="space-y-4 text-sm text-muted-foreground">
                 <p>
                   AI model quyidagi omillarni tahlil qiladi:
                 </p>
@@ -526,20 +513,20 @@ export default function MLPage() {
                 <p className="text-xs">
                   Ko&apos;proq ma&apos;lumot kiritilsa, bashorat aniqligi oshadi.
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Win Probability Result */}
           {wpResult && (
-            <Card className={`border ${riskBgColors[wpResult.risk_level] ?? "border-border"}`}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <div className={`rounded-2xl border backdrop-blur-xl p-6 transition-all hover:shadow-lg ${riskBgColors[wpResult.risk_level] ?? "border-white/50 bg-white/60 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08]"}`}>
+              <div className="mb-4">
+                <h3 className="text-[17px] font-semibold tracking-[-0.02em] flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-primary" />
                   G&apos;alaba ehtimoli natijasi
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
+                </h3>
+              </div>
+              <div className="space-y-6">
                 {/* Main probability display */}
                 <div className="flex flex-col items-center py-4">
                   <div className="relative">
@@ -603,12 +590,17 @@ export default function MLPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium">{factor.name}</span>
-                            <Badge
-                              variant={factor.impact > 0 ? "default" : factor.impact < 0 ? "destructive" : "secondary"}
-                              className="text-xs"
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
+                                factor.impact > 0
+                                  ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f]"
+                                  : factor.impact < 0
+                                    ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                                    : "bg-black/5 text-[#1d1d1f] dark:bg-white/10 dark:text-white"
+                              }`}
                             >
                               {factor.impact > 0 ? "+" : ""}{factor.impact}
-                            </Badge>
+                            </span>
                           </div>
                           <p className="text-xs text-muted-foreground truncate">
                             {factor.detail}
@@ -625,32 +617,32 @@ export default function MLPage() {
                 <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <span>Model:</span>
-                    <Badge variant="outline" className="text-xs">{wpResult.model_version}</Badge>
+                    <span className="inline-flex items-center rounded-full border border-black/10 px-2.5 py-0.5 text-[12px] font-semibold dark:border-white/10">{wpResult.model_version}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span>Ishonchlilik:</span>
                     <span className="font-medium text-foreground">{wpResult.confidence}%</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </TabsContent>
 
         {/* ===== RISK ASSESSMENT TAB ===== */}
         <TabsContent value="risk-assessment" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <div className="lg:col-span-2 rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="mb-4">
+                <h3 className="text-[17px] font-semibold tracking-[-0.02em] flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
                   Risk tahlili
-                </CardTitle>
-                <CardDescription>
+                </h3>
+                <p className="text-[14px] text-muted-foreground mt-1">
                   Tender bilan bog&apos;liq barcha xavflarni baholang
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
+                </p>
+              </div>
+              <div className="space-y-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Kategoriya <span className="text-red-500">*</span></Label>
@@ -679,41 +671,41 @@ export default function MLPage() {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Tender summasi (UZS)</Label>
-                    <Input type="number" placeholder="100 000 000" value={raTenderAmount} onChange={(e) => setRaTenderAmount(e.target.value)} />
+                    <input type="number" placeholder="100 000 000" value={raTenderAmount} onChange={(e) => setRaTenderAmount(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                   <div className="space-y-2">
                     <Label>Bozor o&apos;rtachasi (UZS)</Label>
-                    <Input type="number" placeholder="90 000 000" value={raAvgMarket} onChange={(e) => setRaAvgMarket(e.target.value)} />
+                    <input type="number" placeholder="90 000 000" value={raAvgMarket} onChange={(e) => setRaAvgMarket(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                   <div className="space-y-2">
                     <Label>Kompaniya byudjeti (UZS)</Label>
-                    <Input type="number" placeholder="150 000 000" value={raCompanyBudget} onChange={(e) => setRaCompanyBudget(e.target.value)} />
+                    <input type="number" placeholder="150 000 000" value={raCompanyBudget} onChange={(e) => setRaCompanyBudget(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Tajriba (yil)</Label>
-                    <Input type="number" placeholder="3" value={raExperience} onChange={(e) => setRaExperience(e.target.value)} />
+                    <input type="number" placeholder="3" value={raExperience} onChange={(e) => setRaExperience(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                   <div className="space-y-2">
                     <Label>Raqobatchilar soni</Label>
-                    <Input type="number" placeholder="5" value={raCompetitors} onChange={(e) => setRaCompetitors(e.target.value)} />
+                    <input type="number" placeholder="5" value={raCompetitors} onChange={(e) => setRaCompetitors(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                   <div className="space-y-2">
                     <Label>Muddatgacha (kun)</Label>
-                    <Input type="number" placeholder="14" value={raDaysLeft} onChange={(e) => setRaDaysLeft(e.target.value)} />
+                    <input type="number" placeholder="14" value={raDaysLeft} onChange={(e) => setRaDaysLeft(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Faol loyihalar soni</Label>
-                    <Input type="number" placeholder="0" value={raActiveProjects} onChange={(e) => setRaActiveProjects(e.target.value)} />
+                    <input type="number" placeholder="0" value={raActiveProjects} onChange={(e) => setRaActiveProjects(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                   <div className="space-y-2">
                     <Label>Talab qilingan hujjatlar</Label>
-                    <Input type="number" placeholder="5" value={raDocCount} onChange={(e) => setRaDocCount(e.target.value)} />
+                    <input type="number" placeholder="5" value={raDocCount} onChange={(e) => setRaDocCount(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                   <div className="flex items-center gap-3 pt-6">
                     <Switch checked={raCategoryMatch} onCheckedChange={setRaCategoryMatch} />
@@ -732,35 +724,36 @@ export default function MLPage() {
                   </div>
                 </div>
 
-                <Button
+                <button
                   onClick={handleRiskAssess}
                   disabled={raPredicting || !raCategory || !raRegion}
-                  className="w-full"
-                  size="lg"
+                  className={`w-full rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] flex items-center justify-center gap-2 ${
+                    raPredicting || !raCategory || !raRegion ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
                   {raPredicting ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Tahlil qilinmoqda...
                     </>
                   ) : (
                     <>
-                      <Shield className="mr-2 h-4 w-4" />
+                      <Shield className="h-4 w-4" />
                       Xavflarni baholash
                     </>
                   )}
-                </Button>
-              </CardContent>
-            </Card>
+                </button>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold tracking-[-0.02em] flex items-center gap-2">
                   <Info className="h-4 w-4" />
                   Baholash mezonlari
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                </h3>
+              </div>
+              <div className="space-y-3 text-sm text-muted-foreground">
                 <div className="flex items-start gap-2">
                   <div className="h-3 w-3 rounded-full bg-green-500 mt-1 shrink-0" />
                   <span><strong className="text-foreground">Past xavf</strong> — xavfsiz, davom etish mumkin</span>
@@ -775,22 +768,22 @@ export default function MLPage() {
                 </div>
                 <Separator />
                 <p className="text-xs">6 ta xavf kategoriyasi tahlil qilinadi: byudjet, muddat, raqobat, imkoniyat, hujjatlar va bozor.</p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Risk Assessment Result */}
           {raResult && (
             <div className="space-y-6">
               {/* Overall score */}
-              <Card className={`border ${
+              <div className={`rounded-2xl border backdrop-blur-xl p-6 transition-all hover:shadow-lg ${
                 raResult.overall_level === "past"
                   ? "bg-green-500/5 border-green-500/20"
                   : raResult.overall_level === "o'rta"
                     ? "bg-amber-500/5 border-amber-500/20"
                     : "bg-red-500/5 border-red-500/20"
               }`}>
-                <CardContent className="pt-6">
+                <div className="pt-0">
                   <div className="flex flex-col items-center py-4">
                     <div className={`text-5xl font-bold ${
                       raResult.overall_level === "past"
@@ -824,24 +817,28 @@ export default function MLPage() {
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Individual risks */}
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {raResult.risks.map((risk, idx) => (
-                  <Card key={idx}>
-                    <CardHeader className="pb-3">
+                  <div key={idx} className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                    <div className="mb-3">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm">{risk.name}</CardTitle>
-                        <Badge variant={
-                          risk.level === "past" ? "secondary" : risk.level === "o'rta" ? "outline" : "destructive"
-                        }>
+                        <h3 className="text-sm font-semibold">{risk.name}</h3>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
+                          risk.level === "past"
+                            ? "bg-black/5 text-[#1d1d1f] dark:bg-white/10 dark:text-white"
+                            : risk.level === "o'rta"
+                              ? "border border-black/10 dark:border-white/10"
+                              : "bg-red-500/10 text-red-600 dark:text-red-400"
+                        }`}>
                           {risk.label}
-                        </Badge>
+                        </span>
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
+                    </div>
+                    <div className="space-y-3">
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>Xavf darajasi</span>
@@ -865,21 +862,21 @@ export default function MLPage() {
                           </li>
                         ))}
                       </ul>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
 
               {/* Recommendations */}
               {raResult.recommendations.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                  <div className="mb-4">
+                    <h3 className="text-base font-semibold tracking-[-0.02em] flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-primary" />
                       Tavsiyalar
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                    </h3>
+                  </div>
+                  <div>
                     <ul className="space-y-2">
                       {raResult.recommendations.map((rec, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-sm">
@@ -888,8 +885,8 @@ export default function MLPage() {
                         </li>
                       ))}
                     </ul>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -898,17 +895,17 @@ export default function MLPage() {
         {/* ===== OPTIMAL BID TAB ===== */}
         <TabsContent value="optimal-bid" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <div className="lg:col-span-2 rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="mb-4">
+                <h3 className="text-[17px] font-semibold tracking-[-0.02em] flex items-center gap-2">
                   <Target className="h-5 w-5 text-primary" />
                   Optimal narx tavsiyasi
-                </CardTitle>
-                <CardDescription>
+                </h3>
+                <p className="text-[14px] text-muted-foreground mt-1">
                   AI turli narx darajalarini simulyatsiya qilib, eng yaxshi taklifni topadi
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
+                </p>
+              </div>
+              <div className="space-y-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>
@@ -946,40 +943,44 @@ export default function MLPage() {
                   <Label>
                     Tender summasi (UZS) <span className="text-red-500">*</span>
                   </Label>
-                  <Input
+                  <input
                     type="number"
                     placeholder="100 000 000"
                     value={obTenderAmount}
                     onChange={(e) => setObTenderAmount(e.target.value)}
+                    className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                   />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Kompaniya tajribasi (yil)</Label>
-                    <Input
+                    <input
                       type="number"
                       placeholder="3"
                       value={obExperience}
                       onChange={(e) => setObExperience(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Raqobatchilar soni</Label>
-                    <Input
+                    <input
                       type="number"
                       placeholder="5"
                       value={obCompetitors}
                       onChange={(e) => setObCompetitors(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Muddatgacha (kun)</Label>
-                    <Input
+                    <input
                       type="number"
                       placeholder="14"
                       value={obDaysLeft}
                       onChange={(e) => setObDaysLeft(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     />
                   </div>
                 </div>
@@ -987,11 +988,12 @@ export default function MLPage() {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Oldingi g&apos;alabalar</Label>
-                    <Input
+                    <input
                       type="number"
                       placeholder="0"
                       value={obPastWins}
                       onChange={(e) => setObPastWins(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10"
                     />
                   </div>
                   <div className="flex items-center gap-3 pt-6">
@@ -1004,35 +1006,36 @@ export default function MLPage() {
                   </div>
                 </div>
 
-                <Button
+                <button
                   onClick={handleOptimalBid}
                   disabled={obPredicting || !obCategory || !obRegion || !obTenderAmount}
-                  className="w-full"
-                  size="lg"
+                  className={`w-full rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] flex items-center justify-center gap-2 ${
+                    obPredicting || !obCategory || !obRegion || !obTenderAmount ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
                   {obPredicting ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Hisoblanmoqda...
                     </>
                   ) : (
                     <>
-                      <Target className="mr-2 h-4 w-4" />
+                      <Target className="h-4 w-4" />
                       Optimal narxni hisoblash
                     </>
                   )}
-                </Button>
-              </CardContent>
-            </Card>
+                </button>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
+            <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold tracking-[-0.02em] flex items-center gap-2">
                   <Info className="h-4 w-4" />
                   Strategiyalar haqida
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm text-muted-foreground">
+                </h3>
+              </div>
+              <div className="space-y-4 text-sm text-muted-foreground">
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
                     <Star className="h-4 w-4 text-primary mt-0.5 shrink-0" />
@@ -1062,22 +1065,22 @@ export default function MLPage() {
                 <p className="text-xs">
                   AI {18} ta narx nuqtasini simulyatsiya qiladi va kutilayotgan qiymat (EV) asosida eng yaxshisini tanlaydi.
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Optimal Bid Result */}
           {obResult && (
             <div className="space-y-6">
               {/* Main result */}
-              <Card className="border-primary/20 bg-primary/5">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 backdrop-blur-xl p-6 transition-all hover:shadow-lg">
+                <div className="mb-4">
+                  <h3 className="text-[17px] font-semibold tracking-[-0.02em] flex items-center gap-2">
                     <Target className="h-5 w-5 text-primary" />
                     Optimal narx natijasi
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                  </h3>
+                </div>
+                <div>
                   <div className="grid gap-6 md:grid-cols-4">
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground mb-1">Optimal taklif narxi</p>
@@ -1112,31 +1115,31 @@ export default function MLPage() {
                   <Separator className="my-4" />
 
                   <p className="text-sm text-muted-foreground">{obResult.recommendation}</p>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Strategies comparison */}
               <div className="grid gap-4 md:grid-cols-3">
                 {obResult.strategies.map((strategy, idx) => (
-                  <Card
+                  <div
                     key={idx}
-                    className={strategy.recommended ? "border-primary ring-2 ring-primary/20" : ""}
+                    className={`rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg ${strategy.recommended ? "!border-primary ring-2 ring-primary/20" : ""}`}
                   >
-                    <CardHeader className="pb-3">
+                    <div className="mb-3">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-base flex items-center gap-2">
+                        <h3 className="text-base font-semibold flex items-center gap-2">
                           {idx === 0 && <Star className="h-4 w-4 text-primary" />}
                           {idx === 1 && <Zap className="h-4 w-4 text-amber-500" />}
                           {idx === 2 && <ShieldCheck className="h-4 w-4 text-green-500" />}
                           {strategy.name}
-                        </CardTitle>
+                        </h3>
                         {strategy.recommended && (
-                          <Badge>Tavsiya</Badge>
+                          <span className="inline-flex items-center rounded-full bg-[#1d1d1f] text-white px-2.5 py-0.5 text-[12px] font-semibold dark:bg-white dark:text-[#1d1d1f]">Tavsiya</span>
                         )}
                       </div>
-                      <CardDescription className="text-xs">{strategy.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
+                      <p className="text-xs text-muted-foreground mt-1">{strategy.description}</p>
+                    </div>
+                    <div className="space-y-3">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Taklif narxi</span>
                         <span className="font-semibold">{formatAmount(strategy.bid_amount)}</span>
@@ -1162,20 +1165,20 @@ export default function MLPage() {
                         <span className="text-muted-foreground">Kutilayotgan qiymat</span>
                         <span className="font-bold text-primary">{formatAmount(strategy.expected_value)}</span>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
 
               {/* Simulation chart data as table */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Narx simulyatsiyasi</CardTitle>
-                  <CardDescription>
+              <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold tracking-[-0.02em]">Narx simulyatsiyasi</h3>
+                  <p className="text-[14px] text-muted-foreground mt-1">
                     Turli narx darajalarida g&apos;alaba ehtimoli va kutilayotgan qiymat
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+                  </p>
+                </div>
+                <div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -1197,7 +1200,7 @@ export default function MLPage() {
                             >
                               <td className="py-2 pr-4">
                                 {(point.bid_ratio * 100).toFixed(0)}%
-                                {isOptimal && <Badge variant="outline" className="ml-2 text-xs">Optimal</Badge>}
+                                {isOptimal && <span className="inline-flex items-center rounded-full border border-black/10 px-2.5 py-0.5 text-[12px] font-semibold dark:border-white/10 ml-2">Optimal</span>}
                               </td>
                               <td className="text-right py-2 px-4">{formatAmount(point.bid_amount)}</td>
                               <td className={`text-right py-2 px-4 ${
@@ -1217,34 +1220,34 @@ export default function MLPage() {
                       </tbody>
                     </table>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           )}
         </TabsContent>
 
         {/* ===== SIMILARITY TAB ===== */}
         <TabsContent value="similarity" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="mb-4">
+              <h3 className="text-[17px] font-semibold tracking-[-0.02em] flex items-center gap-2">
                 <GitCompareArrows className="h-5 w-5 text-primary" />
                 Tender o&apos;xshashligini taqqoslash
-              </CardTitle>
-              <CardDescription>
+              </h3>
+              <p className="text-[14px] text-muted-foreground mt-1">
                 Ikki tenderni kiritib, ular qanchalik o&apos;xshash ekanini aniqlang
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+              </p>
+            </div>
+            <div className="space-y-6">
               <div className="grid gap-6 lg:grid-cols-2">
                 {/* Tender A */}
-                <div className="space-y-4 p-4 border rounded-lg">
+                <div className="space-y-4 p-4 border rounded-xl border-black/10 dark:border-white/10">
                   <h4 className="font-semibold text-sm flex items-center gap-2">
-                    <Badge>A</Badge> Birinchi tender
+                    <span className="inline-flex items-center rounded-full bg-[#1d1d1f] text-white px-2.5 py-0.5 text-[12px] font-semibold dark:bg-white dark:text-[#1d1d1f]">A</span> Birinchi tender
                   </h4>
                   <div className="space-y-2">
                     <Label>Sarlavha</Label>
-                    <Input placeholder="Tender sarlavhasi" value={tsaTitleA} onChange={(e) => setTsaTitleA(e.target.value)} />
+                    <input placeholder="Tender sarlavhasi" value={tsaTitleA} onChange={(e) => setTsaTitleA(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                   <div className="space-y-2">
                     <Label>Tavsif</Label>
@@ -1276,18 +1279,18 @@ export default function MLPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Summa (UZS)</Label>
-                    <Input type="number" placeholder="50 000 000" value={tsaAmountA} onChange={(e) => setTsaAmountA(e.target.value)} />
+                    <input type="number" placeholder="50 000 000" value={tsaAmountA} onChange={(e) => setTsaAmountA(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                 </div>
 
                 {/* Tender B */}
-                <div className="space-y-4 p-4 border rounded-lg">
+                <div className="space-y-4 p-4 border rounded-xl border-black/10 dark:border-white/10">
                   <h4 className="font-semibold text-sm flex items-center gap-2">
-                    <Badge variant="secondary">B</Badge> Ikkinchi tender
+                    <span className="inline-flex items-center rounded-full bg-black/5 text-[#1d1d1f] px-2.5 py-0.5 text-[12px] font-semibold dark:bg-white/10 dark:text-white">B</span> Ikkinchi tender
                   </h4>
                   <div className="space-y-2">
                     <Label>Sarlavha</Label>
-                    <Input placeholder="Tender sarlavhasi" value={tsaTitleB} onChange={(e) => setTsaTitleB(e.target.value)} />
+                    <input placeholder="Tender sarlavhasi" value={tsaTitleB} onChange={(e) => setTsaTitleB(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                   <div className="space-y-2">
                     <Label>Tavsif</Label>
@@ -1319,42 +1322,43 @@ export default function MLPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Summa (UZS)</Label>
-                    <Input type="number" placeholder="55 000 000" value={tsaAmountB} onChange={(e) => setTsaAmountB(e.target.value)} />
+                    <input type="number" placeholder="55 000 000" value={tsaAmountB} onChange={(e) => setTsaAmountB(e.target.value)} className="w-full h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-[14px] outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 dark:bg-white/5 dark:border-white/10" />
                   </div>
                 </div>
               </div>
 
-              <Button
+              <button
                 onClick={handleSimilarity}
                 disabled={tsaPredicting || (!tsaTitleA && !tsaDescA) || (!tsaTitleB && !tsaDescB)}
-                className="w-full"
-                size="lg"
+                className={`w-full rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] flex items-center justify-center gap-2 ${
+                  tsaPredicting || (!tsaTitleA && !tsaDescA) || (!tsaTitleB && !tsaDescB) ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 {tsaPredicting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Taqqoslanmoqda...
                   </>
                 ) : (
                   <>
-                    <GitCompareArrows className="mr-2 h-4 w-4" />
+                    <GitCompareArrows className="h-4 w-4" />
                     Taqqoslash
                   </>
                 )}
-              </Button>
-            </CardContent>
-          </Card>
+              </button>
+            </div>
+          </div>
 
           {/* Similarity Result */}
           {tsaResult && (
-            <Card className={`border ${
+            <div className={`rounded-2xl border backdrop-blur-xl p-6 transition-all hover:shadow-lg ${
               tsaResult.level === "yuqori"
                 ? "bg-green-500/5 border-green-500/20"
                 : tsaResult.level === "o'rta"
                   ? "bg-amber-500/5 border-amber-500/20"
-                  : "bg-muted/50"
+                  : "bg-muted/50 border-white/50 dark:border-white/[0.08]"
             }`}>
-              <CardContent className="pt-6">
+              <div>
                 <div className="flex flex-col items-center py-4">
                   <div className={`text-6xl font-bold ${
                     tsaResult.overall_similarity >= 75
@@ -1397,21 +1401,21 @@ export default function MLPage() {
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </TabsContent>
 
         {/* ===== TREND FORECAST TAB ===== */}
         <TabsContent value="trend-forecast" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Bozor trend prognozi</CardTitle>
-              <CardDescription>
+          <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+            <div className="mb-4">
+              <h3 className="text-[17px] font-semibold tracking-[-0.02em]">Bozor trend prognozi</h3>
+              <p className="text-[14px] text-muted-foreground mt-1">
                 Tarixiy ma&apos;lumotlar asosida kelgusi oylar uchun tender bozori prognozi
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label>Kategoriya (ixtiyoriy)</Label>
@@ -1458,98 +1462,92 @@ export default function MLPage() {
                   </Select>
                 </div>
               </div>
-              <Button
+              <button
                 onClick={handleTrendForecast}
                 disabled={tfLoading}
-                className="w-full sm:w-auto"
+                className={`rounded-full bg-[#1d1d1f] text-white px-6 py-2.5 text-[13px] font-semibold transition-all hover:bg-[#333] hover:shadow-lg active:scale-[0.97] dark:bg-white dark:text-[#1d1d1f] flex items-center justify-center gap-2 sm:w-auto w-full ${
+                  tfLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 {tfLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Tahlil qilinmoqda...
                   </>
                 ) : (
                   <>
-                    <TrendingUp className="mr-2 h-4 w-4" />
+                    <TrendingUp className="h-4 w-4" />
                     Prognoz qilish
                   </>
                 )}
-              </Button>
-            </CardContent>
-          </Card>
+              </button>
+            </div>
+          </div>
 
           {tfResult && (
             <>
               {/* Summary Cards */}
               <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-xs text-muted-foreground mb-1">Tender soni trendi</p>
-                    <p className={`text-xl font-bold ${
-                      tfResult.summary.count_trend === "o'sish"
-                        ? "text-green-600"
-                        : tfResult.summary.count_trend === "pasayish"
-                        ? "text-red-600"
-                        : "text-muted-foreground"
-                    }`}>
-                      {tfResult.summary.count_trend === "o'sish" ? "O'sish" :
-                       tfResult.summary.count_trend === "pasayish" ? "Pasayish" : "Barqaror"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {tfResult.summary.growth_rate > 0 ? "+" : ""}{tfResult.summary.growth_rate}%
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-xs text-muted-foreground mb-1">Summa trendi</p>
-                    <p className={`text-xl font-bold ${
-                      tfResult.summary.amount_trend === "o'sish"
-                        ? "text-green-600"
-                        : tfResult.summary.amount_trend === "pasayish"
-                        ? "text-red-600"
-                        : "text-muted-foreground"
-                    }`}>
-                      {tfResult.summary.amount_trend === "o'sish" ? "O'sish" :
-                       tfResult.summary.amount_trend === "pasayish" ? "Pasayish" : "Barqaror"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      O&apos;rtacha: {formatAmount(tfResult.summary.avg_monthly_amount)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-xs text-muted-foreground mb-1">Tahlil qilingan</p>
-                    <p className="text-xl font-bold">{tfResult.summary.total_months_analyzed} oy</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      O&apos;rtacha {tfResult.summary.avg_monthly_count} ta/oy
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-xs text-muted-foreground mb-1">Ishonchlilik</p>
-                    <p className={`text-xl font-bold ${
-                      tfResult.summary.confidence >= 60
-                        ? "text-green-600"
-                        : tfResult.summary.confidence >= 40
-                        ? "text-amber-600"
-                        : "text-red-600"
-                    }`}>
-                      {tfResult.summary.confidence}%
-                    </p>
-                    <Progress value={tfResult.summary.confidence} className="h-1.5 mt-2" />
-                  </CardContent>
-                </Card>
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Tender soni trendi</p>
+                  <p className={`text-xl font-bold ${
+                    tfResult.summary.count_trend === "o'sish"
+                      ? "text-green-600"
+                      : tfResult.summary.count_trend === "pasayish"
+                      ? "text-red-600"
+                      : "text-muted-foreground"
+                  }`}>
+                    {tfResult.summary.count_trend === "o'sish" ? "O'sish" :
+                     tfResult.summary.count_trend === "pasayish" ? "Pasayish" : "Barqaror"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {tfResult.summary.growth_rate > 0 ? "+" : ""}{tfResult.summary.growth_rate}%
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Summa trendi</p>
+                  <p className={`text-xl font-bold ${
+                    tfResult.summary.amount_trend === "o'sish"
+                      ? "text-green-600"
+                      : tfResult.summary.amount_trend === "pasayish"
+                      ? "text-red-600"
+                      : "text-muted-foreground"
+                  }`}>
+                    {tfResult.summary.amount_trend === "o'sish" ? "O'sish" :
+                     tfResult.summary.amount_trend === "pasayish" ? "Pasayish" : "Barqaror"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    O&apos;rtacha: {formatAmount(tfResult.summary.avg_monthly_amount)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Tahlil qilingan</p>
+                  <p className="text-xl font-bold">{tfResult.summary.total_months_analyzed} oy</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    O&apos;rtacha {tfResult.summary.avg_monthly_count} ta/oy
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Ishonchlilik</p>
+                  <p className={`text-xl font-bold ${
+                    tfResult.summary.confidence >= 60
+                      ? "text-green-600"
+                      : tfResult.summary.confidence >= 40
+                      ? "text-amber-600"
+                      : "text-red-600"
+                  }`}>
+                    {tfResult.summary.confidence}%
+                  </p>
+                  <Progress value={tfResult.summary.confidence} className="h-1.5 mt-2" />
+                </div>
               </div>
 
               {/* Tender Count Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Tender soni — tarix va prognoz</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold tracking-[-0.02em]">Tender soni — tarix va prognoz</h3>
+                </div>
+                <div>
                   <ChartContainer
                     config={{
                       count: { label: "Haqiqiy soni", color: "var(--chart-1)" },
@@ -1580,15 +1578,15 @@ export default function MLPage() {
                       <Bar dataKey="predicted_count" fill="var(--chart-2)" radius={[4, 4, 0, 0]} opacity={0.6} name="Prognoz" />
                     </ComposedChart>
                   </ChartContainer>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Amount Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">O&apos;rtacha summa — tarix va prognoz</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold tracking-[-0.02em]">O&apos;rtacha summa — tarix va prognoz</h3>
+                </div>
+                <div>
                   <ChartContainer
                     config={{
                       avg_amount: { label: "Haqiqiy summa", color: "var(--chart-1)" },
@@ -1619,19 +1617,19 @@ export default function MLPage() {
                       <Area dataKey="predicted_avg_amount" fill="var(--chart-4)" fillOpacity={0.15} stroke="var(--chart-4)" strokeWidth={2} strokeDasharray="8 4" name="Prognoz" />
                     </AreaChart>
                   </ChartContainer>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Insights */}
               {tfResult.insights.length > 0 && (
-                <Card className="border-primary/20 bg-primary/5">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 backdrop-blur-xl p-6 transition-all hover:shadow-lg">
+                  <div className="mb-4">
+                    <h3 className="text-base font-semibold tracking-[-0.02em] flex items-center gap-2">
                       <Zap className="h-4 w-4 text-primary" />
                       AI xulosalari
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                    </h3>
+                  </div>
+                  <div>
                     <ul className="space-y-2">
                       {tfResult.insights.map((insight, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm">
@@ -1640,16 +1638,16 @@ export default function MLPage() {
                         </li>
                       ))}
                     </ul>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )}
 
               {/* Forecast Table */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Prognoz jadvali</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 dark:bg-[rgba(17,24,39,0.5)] dark:border-white/[0.08] transition-all hover:shadow-lg">
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold tracking-[-0.02em]">Prognoz jadvali</h3>
+                </div>
+                <div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -1672,8 +1670,8 @@ export default function MLPage() {
                       </tbody>
                     </table>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </>
           )}
         </TabsContent>
